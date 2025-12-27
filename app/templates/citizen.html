@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Citizen Dashboard - Patta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen">
+    <div class="container mx-auto p-8 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white shadow-2xl rounded-3xl p-8 mb-8 text-center">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">👤 Citizen Dashboard</h1>
+            <p id="user-name" class="text-xl text-gray-600">Loading...</p>
+            <button onclick="logout()" class="mt-4 bg-red-500 text-white px-6 py-2 rounded-2xl hover:bg-red-600">Logout</button>
+        </div>
+
+        <!-- Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Patta Requests -->
+            <div class="bg-white shadow-2xl rounded-3xl p-8">
+                <h2 class="text-2xl font-bold mb-6">📋 My Requests</h2>
+                <button onclick="createRequest()" class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-2xl font-semibold mb-6">➕ New Request</button>
+                <div id="requests" class="space-y-4 max-h-96 overflow-y-auto"></div>
+            </div>
+
+            <!-- Gemini Chatbot -->
+            <div class="bg-gradient-to-br from-purple-500 to-pink-500 shadow-2xl rounded-3xl p-8 text-white">
+                <h2 class="text-2xl font-bold mb-6">🤖 PattaBot AI</h2>
+                <div id="chat-history" class="bg-white/20 backdrop-blur-lg rounded-2xl p-4 mb-4 max-h-64 overflow-y-auto space-y-3"></div>
+                <div class="flex gap-2">
+                    <input id="chat-input" placeholder="பட்டா சரிபார்ப்பு பற்றி கேளுங்கள்..." class="flex-1 bg-white/30 border-white/50 border p-4 rounded-2xl text-white placeholder-purple-200 focus:outline-none">
+                    <button onclick="sendChat()" class="bg-white text-purple-600 px-6 py-4 rounded-2xl font-bold">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        let user = null;
+
+        async function apiCall(url, options = {}) {
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) throw await response.json();
+            return response.json();
+        }
+
+        async function loadUser() {
+            const data = await apiCall('/api/auth/me');
+            user = data;
+            document.getElementById('user-name').textContent = user.name || user.email;
+        }
+
+        async function loadRequests() {
+            const data = await apiCall('/api/patta/requests');
+            document.getElementById('requests').innerHTML = data.requests.map(req => `
+                <div class="p-6 bg-gray-50 rounded-2xl border-l-4 ${req.status === 'pending' ? 'border-yellow-500' : 'border-green-500'}">
+                    <div class="font-bold text-xl">${req.pattaId}</div>
+                    <div class="text-lg">${req.status.toUpperCase()}</div>
+                    <div class="text-sm text-gray-500">${req.createdAt}</div>
+                </div>
+            `).join('') || '<div class="text-gray-500 py-12 text-center">No requests</div>';
+        }
+
+        async function createRequest() {
+            const data = await apiCall('/api/patta/requests', {
+                method: 'POST',
+                body: JSON.stringify({
+                    pattaId: 'PATTA' + Date.now(),
+                    location: { lat: 13.0827, lng: 80.2707 }
+                })
+            });
+            alert('✅ Request created: ' + data.requestId);
+            loadRequests();
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const question = input.value.trim();
+            if (!question) return;
+            
+            const history = document.getElementById('chat-history');
+            history.innerHTML += `<div class="text-right"><div class="inline-block bg-purple-600 text-white p-3 rounded-2xl max-w-xs">${question}</div></div>`;
+            input.value = '';
+            
+            const data = await apiCall('/api/chat/ask', {
+                method: 'POST',
+                body: JSON.stringify({ question })
+            });
+            history.innerHTML += `<div class="text-left"><div class="inline-block bg-white text-purple-900 p-3 rounded-2xl max-w-xs">${data.answer}</div></div>`;
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+
+        // Load on start
+        loadUser().then(loadRequests).catch(() => window.location.href = '/');
+        document.getElementById('chat-input').addEventListener('keypress', e => e.key === 'Enter' && sendChat());
+    </script>
+</body>
+</html>

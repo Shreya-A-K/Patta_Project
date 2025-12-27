@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Staff Dashboard - Patta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-orange-50 to-amber-100 min-h-screen">
+    <div class="container mx-auto p-8 max-w-6xl">
+        <div class="bg-white shadow-2xl rounded-3xl p-8 mb-8 text-center">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">👨‍💼 Staff Dashboard</h1>
+            <p id="user-name" class="text-xl text-gray-600">Loading...</p>
+            <button onclick="logout()" class="mt-4 bg-red-500 text-white px-6 py-2 rounded-2xl">Logout</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Pending Requests -->
+            <div class="bg-white shadow-2xl rounded-3xl p-8">
+                <h2 class="text-2xl font-bold mb-6">📋 Pending Requests</h2>
+                <div id="pending-requests" class="space-y-4 max-h-96 overflow-y-auto"></div>
+            </div>
+
+            <!-- Boundary Management -->
+            <div class="bg-white shadow-2xl rounded-3xl p-8">
+                <h2 class="text-2xl font-bold mb-6">🗺️ Update Boundaries</h2>
+                <input id="patta-id" placeholder="PATTA123" class="w-full p-4 border-2 border-gray-200 rounded-2xl mb-4">
+                <input id="area" type="number" placeholder="Area (sq ft)" class="w-full p-4 border-2 border-gray-200 rounded-2xl mb-4">
+                <button onclick="updateBoundary()" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-2xl font-bold">Update Boundary</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        
+        async function apiCall(url, options = {}) {
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) throw await response.json();
+            return response.json();
+        }
+
+        async function loadUser() {
+            const data = await apiCall('/api/auth/me');
+            document.getElementById('user-name').textContent = data.name || data.email;
+        }
+
+        async function loadPendingRequests() {
+            const data = await apiCall('/api/patta/requests');
+            const pending = data.requests.filter(r => r.status === 'pending');
+            document.getElementById('pending-requests').innerHTML = pending.map(req => `
+                <div class="p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200">
+                    <div class="font-bold text-xl">${req.pattaId}</div>
+                    <div class="text-sm text-yellow-800">Pending Verification</div>
+                </div>
+            `).join('') || '<div class="text-gray-500 py-12 text-center">No pending requests</div>';
+        }
+
+        async function updateBoundary() {
+            const pattaId = document.getElementById('patta-id').value;
+            const area = document.getElementById('area').value;
+            if (!pattaId || !area) return alert('Fill all fields');
+            
+            try {
+                await apiCall(`/api/patta/boundaries/${pattaId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coordinates: [[13.0827,80.2707],[13.0830,80.2707],[13.0830,80.2710],[13.0827,80.2710]],
+                        area: parseFloat(area)
+                    })
+                });
+                alert('✅ Boundary updated!');
+            } catch (error) {
+                alert('Error: ' + error.error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+
+        loadUser().then(loadPendingRequests).catch(() => window.location.href = '/');
+    </script>
+</body>
+</html>

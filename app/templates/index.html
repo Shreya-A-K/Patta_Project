@@ -1,26 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patta Verification PWA</title>
-    <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="https://cdn.tailwindcss.com">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <style>
-        .leaflet-container { border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-    </style>
+    <title>Patta Verification - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div id="app" class="min-h-screen bg-gray-50"></div>
-    
-    <script src="/static/js/app.js"></script>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto p-8 max-w-md">
+        <div class="bg-white shadow-2xl rounded-3xl p-12 text-center">
+            <h1 class="text-5xl font-bold text-gray-800 mb-6">🛡️ Patta Verification</h1>
+            <p class="text-xl text-gray-600 mb-12">Tamil Nadu Land Records Portal</p>
+            
+            <div class="space-y-4">
+                <input id="email" placeholder="admin@test.com" class="w-full p-4 border-2 border-gray-200 rounded-2xl text-lg focus:ring-4 focus:ring-blue-200">
+                <input id="password" type="password" placeholder="123456" class="w-full p-4 border-2 border-gray-200 rounded-2xl text-lg focus:ring-4 focus:ring-blue-200">
+                <button onclick="login()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white p-5 rounded-2xl text-xl font-bold hover:shadow-2xl transform hover:-translate-y-1 transition-all">
+                    🚀 Login
+                </button>
+            </div>
+            
+            <div class="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-2xl">
+                <h3 class="font-bold text-yellow-800">Demo Accounts:</h3>
+                <div class="text-sm text-yellow-700 mt-2 space-y-1">
+                    • citizen@test.com / 123456<br>
+                    • staff@test.com / 123456<br>
+                    • admin@test.com / 123456
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js');
+        let token = localStorage.getItem('token');
+        if (token) window.location.href = '/dashboard';
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Login failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Login error: ' + error.message);
+            }
         }
     </script>
 </body>
