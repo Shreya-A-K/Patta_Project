@@ -4,7 +4,7 @@ from firebase_admin import firestore, auth, credentials
 from functools import wraps
 import os
 from dotenv import load_dotenv
-
+#hello change
 
 # Load environment (don't init Firebase here - use app/__init__.py)
 load_dotenv()
