@@ -5,6 +5,7 @@ from functools import wraps
 import os
 from dotenv import load_dotenv
 
+
 # Load environment (don't init Firebase here - use app/__init__.py)
 load_dotenv()
 
