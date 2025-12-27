@@ -1,9 +1,1 @@
-# ignore environment variables
 .env
-
-# ignore Python cache
-__pycache__/
-*.pyc
-
-# ignore node modules if using React frontend
-node_modules/
