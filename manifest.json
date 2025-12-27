@@ -1,0 +1,9 @@
+{
+  "name": "Patta Verification PWA",
+  "short_name": "PattaPWA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [{"src": "data:image/svg+xml;base64,...", "sizes": "192x192"}]
+}
