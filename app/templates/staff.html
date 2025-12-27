@@ -1,85 +1,235 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Staff Dashboard - Patta</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-orange-50 to-amber-100 min-h-screen">
-    <div class="container mx-auto p-8 max-w-6xl">
-        <div class="bg-white shadow-2xl rounded-3xl p-8 mb-8 text-center">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">👨‍💼 Staff Dashboard</h1>
-            <p id="user-name" class="text-xl text-gray-600">Loading...</p>
-            <button onclick="logout()" class="mt-4 bg-red-500 text-white px-6 py-2 rounded-2xl">Logout</button>
-        </div>
+{% extends "base.html" %}
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Pending Requests -->
-            <div class="bg-white shadow-2xl rounded-3xl p-8">
-                <h2 class="text-2xl font-bold mb-6">📋 Pending Requests</h2>
-                <div id="pending-requests" class="space-y-4 max-h-96 overflow-y-auto"></div>
+{% block title %}Staff Dashboard - Patta Approvals{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="welcome-card">
+        <h1 class="welcome-title">Staff Dashboard</h1>
+        <p>Manage Patta Applications - State-wise Analytics</p>
+    </div>
+
+    <!-- ✅ STATE-WISE STATS -->
+    <div class="form-card" style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1.5rem;">📊 Application Statistics</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalApps">0</div>
+                <div class="stat-label">Total Applications</div>
             </div>
-
-            <!-- Boundary Management -->
-            <div class="bg-white shadow-2xl rounded-3xl p-8">
-                <h2 class="text-2xl font-bold mb-6">🗺️ Update Boundaries</h2>
-                <input id="patta-id" placeholder="PATTA123" class="w-full p-4 border-2 border-gray-200 rounded-2xl mb-4">
-                <input id="area" type="number" placeholder="Area (sq ft)" class="w-full p-4 border-2 border-gray-200 rounded-2xl mb-4">
-                <button onclick="updateBoundary()" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-2xl font-bold">Update Boundary</button>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingApps">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="approvedApps">0</div>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="rejectedApps">0</div>
+                <div class="stat-label">Rejected</div>
             </div>
         </div>
     </div>
 
-    <script>
-        const token = localStorage.getItem('token');
+    <!-- ✅ STATE-WISE BREAKDOWN -->
+    <div class="form-card" style="margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">🗺️ By State</h3>
+        <div style="overflow-x: auto;">
+            <table class="table" id="stateTable">
+                <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Total</th>
+                        <th>Pending</th>
+                        <th>Approved</th>
+                        <th>Rejected</th>
+                        <th>% Pending</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ✅ PENDING APPLICATIONS -->
+    <div class="form-card">
+        <h3 style="margin-bottom: 1.5rem;">✅ Pending Applications <span id="pendingCount">(0)</span></h3>
+        <div style="overflow-x: auto;">
+            <table class="table" id="applicationsTable">
+                <thead>
+                    <tr>
+                        <th>Ref ID</th>
+                        <th>State</th>
+                        <th>District</th>
+                        <th>Survey No.</th>
+                        <th>Location</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #10b981 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    text-align: center;
+}
+.stat-number { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+.stat-label { font-size: 0.95rem; opacity: 0.9; }
+.table { width: 100%; border-collapse: collapse; }
+.table th { background: var(--gray-100); font-weight: 600; padding: 1rem 0.75rem; }
+.table td { padding: 1rem 0.75rem; border-bottom: 1px solid var(--gray-200); }
+.action-btn { padding: 0.5rem 1rem; margin: 0 0.25rem; border-radius: 0.5rem; font-size: 0.875rem; }
+</style>
+
+<script>
+let applications = [];
+
+document.addEventListener('DOMContentLoaded', loadApplications);
+
+async function loadApplications() {
+    try {
+        const res = await fetch('/api/staff/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+        applications = data.applications || [];
+        renderStats();
+        renderStateTable();
+        renderApplicationsTable();
+    } catch(e) {
+        console.error('Failed to load applications');
+    }
+}
+
+function renderStats() {
+    const total = applications.length;
+    const pending = applications.filter(a => a.status === 'pending').length;
+    const approved = applications.filter(a => a.status === 'approved').length;
+    const rejected = applications.filter(a => a.status === 'rejected').length;
+    
+    document.getElementById('totalApps').textContent = total;
+    document.getElementById('pendingApps').textContent = pending;
+    document.getElementById('approvedApps').textContent = approved;
+    document.getElementById('rejectedApps').textContent = rejected;
+    document.getElementById('pendingCount').textContent = `(${pending})`;
+}
+
+function renderStateTable() {
+    const stateStats = {};
+    applications.forEach(app => {
+        const state = app.district.split(',')[0] || 'Unknown';
+        if (!stateStats[state]) {
+            stateStats[state] = { total: 0, pending: 0, approved: 0, rejected: 0 };
+        }
+        stateStats[state].total++;
+        stateStats[state][app.status]++;
+    });
+    
+    const tbody = document.querySelector('#stateTable tbody');
+    tbody.innerHTML = Object.entries(stateStats)
+        .sort((a,b) => b[1].total - a[1].total)
+        .map(([state, stats]) => {
+            const pendingPct = stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : 0;
+            return `
+                <tr>
+                    <td><strong>${state}</strong></td>
+                    <td>${stats.total}</td>
+                    <td>${stats.pending}</td>
+                    <td>${stats.approved}</td>
+                    <td>${stats.rejected}</td>
+                    <td>${pendingPct}%</td>
+                </tr>
+            `;
+        }).join('');
+}
+
+function renderApplicationsTable() {
+    const pendingApps = applications.filter(a => a.status === 'pending');
+    
+    const tbody = document.querySelector('#applicationsTable tbody');
+    tbody.innerHTML = pendingApps.map(app => {
+        const date = new Date(app.created_at).toLocaleDateString();
+        const [lat, lng] = app.lat ? [app.lat.slice(0,10), app.lng.slice(0,10)] : ['N/A', 'N/A'];
         
-        async function apiCall(url, options = {}) {
-            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-            const response = await fetch(url, { ...options, headers });
-            if (!response.ok) throw await response.json();
-            return response.json();
-        }
+        return `
+            <tr>
+                <td><strong>${app.reference}</strong></td>
+                <td>${app.district.split(',')[0] || 'N/A'}</td>
+                <td>${app.district}</td>
+                <td>${app.surveyNo || app.subdivNo || 'N/A'}</td>
+                <td>${lat}, ${lng}</td>
+                <td>${date}</td>
+                <td><span class="status-pending">⏳ Pending</span></td>
+                <td>
+                    <button class="action-btn" style="background: #10b981; color: white;" onclick="viewApplication('${app.reference}')">
+                        👁️ View
+                    </button>
+                    <button class="action-btn" style="background: #3b82f6; color: white;" onclick="approve('${app.reference}')">
+                        ✅ Approve
+                    </button>
+                    <button class="action-btn" style="background: #ef4444; color: white;" onclick="reject('${app.reference}')">
+                        ❌ Reject
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
 
-        async function loadUser() {
-            const data = await apiCall('/api/auth/me');
-            document.getElementById('user-name').textContent = data.name || data.email;
-        }
-
-        async function loadPendingRequests() {
-            const data = await apiCall('/api/patta/requests');
-            const pending = data.requests.filter(r => r.status === 'pending');
-            document.getElementById('pending-requests').innerHTML = pending.map(req => `
-                <div class="p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200">
-                    <div class="font-bold text-xl">${req.pattaId}</div>
-                    <div class="text-sm text-yellow-800">Pending Verification</div>
-                </div>
-            `).join('') || '<div class="text-gray-500 py-12 text-center">No pending requests</div>';
-        }
-
-        async function updateBoundary() {
-            const pattaId = document.getElementById('patta-id').value;
-            const area = document.getElementById('area').value;
-            if (!pattaId || !area) return alert('Fill all fields');
-            
-            try {
-                await apiCall(`/api/patta/boundaries/${pattaId}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        coordinates: [[13.0827,80.2707],[13.0830,80.2707],[13.0830,80.2710],[13.0827,80.2710]],
-                        area: parseFloat(area)
-                    })
-                });
-                alert('✅ Boundary updated!');
-            } catch (error) {
-                alert('Error: ' + error.error);
+async function approve(reference) {
+    if (!confirm(`Approve application ${reference}?`)) return;
+    
+    try {
+        await fetch(`/api/staff/approve/${reference}`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
             }
-        }
+        });
+        loadApplications(); // Refresh
+        alert('✅ Approved!');
+    } catch(e) {
+        alert('❌ Approval failed');
+    }
+}
 
-        function logout() {
-            localStorage.removeItem('token');
-            window.location.href = '/';
-        }
+async function reject(reference) {
+    const reason = prompt('Rejection reason (optional):');
+    if (!confirm(`Reject application ${reference}?`)) return;
+    
+    try {
+        await fetch(`/api/staff/reject/${reference}`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason: reason || 'Not specified' })
+        });
+        loadApplications();
+        alert('❌ Rejected!');
+    } catch(e) {
+        alert('❌ Rejection failed');
+    }
+}
 
-        loadUser().then(loadPendingRequests).catch(() => window.location.href = '/');
-    </script>
-</body>
-</html>
+function viewApplication(reference) {
+    const app = applications.find(a => a.reference === reference);
+    if (app) {
+        alert(`Reference: ${app.reference}\nDistrict: ${app.district}\nSurvey: ${app.surveyNo}\nLat/Lng: ${app.lat}, ${app.lng}\nBoundary: ${JSON.stringify(app.boundary)}`);
+        // TODO: Open modal with map preview
+    }
+}
+</script>
+{% endblock %}

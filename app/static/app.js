@@ -1,35 +1,42 @@
-// Add to app.js - Client-side security
+// app/static/js/app.js
 class SecurePattaPWA {
-    constructor() {
-        this.initCSP();
-        this.setupXSRF();
+  constructor() {
+    this.initCSP();
+    this.setupXSRF();
+  }
+
+  initCSP() {
+    document.addEventListener('securitypolicyviolation', (e) => {
+      console.error('CSP Violation:', e);
+    });
+  }
+
+  setupXSRF() {
+    const existing = localStorage.getItem('xsrf_token');
+    const token = existing || this.generateToken();
+    localStorage.setItem('xsrf_token', token);
+    this.xsrfToken = token;
+  }
+
+  generateToken() {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return btoa(String.fromCharCode(...bytes));
+  }
+
+  async apiFetch(url, options = {}) {
+    const headers = {
+      'X-XSRF-TOKEN': this.xsrfToken,
+      ...(options.headers || {})
+    };
+
+    // Only set JSON content type if caller didn’t specify anything
+    if (options.body && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
     }
-    
-    initCSP() {
-        // Enforce CSP violations block execution
-        document.addEventListener('securitypolicyviolation', (e) => {
-            console.error('CSP Violation:', e);
-            document.body.innerHTML = '<h1>Security violation detected</h1>';
-        });
-    }
-    
-    // CSRF protection
-    setupXSRF() {
-        const token = localStorage.getItem('xsrf_token') || this.generateToken();
-        localStorage.setItem('xsrf_token', token);
-        
-        // Attach to all requests
-        this.apiFetch = (url, options = {}) => {
-            options.headers = {
-                ...options.headers,
-                'X-XSRF-TOKEN': token,
-                'Content-Type': 'application/json'
-            };
-            return fetch(url, options);
-        };
-    }
-    
-    generateToken() {
-        return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
-    }
+
+    return fetch(url, { ...options, headers });
+  }
 }
+
+window.pattaApp = new SecurePattaPWA();

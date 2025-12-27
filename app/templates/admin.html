@@ -1,77 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Panel - Patta</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-    <div class="container mx-auto p-8 max-w-6xl">
-        <div class="bg-white shadow-2xl rounded-3xl p-8 mb-8 text-center">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">⚙️ Admin Panel</h1>
-            <p id="user-name" class="text-xl text-gray-600">Loading...</p>
-            <button onclick="logout()" class="mt-4 bg-red-500 text-white px-6 py-2 rounded-2xl">Logout</button>
-        </div>
+{% extends "base.html" %}
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Users -->
-            <div class="bg-white shadow-2xl rounded-3xl p-8">
-                <h2 class="text-2xl font-bold mb-6">👥 Users</h2>
-                <div id="users-list" class="space-y-3 max-h-96 overflow-y-auto"></div>
-            </div>
+{% block title %}{{ lang['Admin Dashboard'] or 'Admin Dashboard' }}{% endblock %}
 
-            <!-- Audit Logs -->
-            <div class="bg-white shadow-2xl rounded-3xl p-8">
-                <h2 class="text-2xl font-bold mb-6">📊 Audit Logs</h2>
-                <div id="audit-list" class="space-y-3 max-h-96 overflow-y-auto"></div>
-            </div>
-        </div>
+{% block content %}
+<div class="container">
+    <div class="welcome-card">
+        <h1 class="welcome-title">{{ lang['Admin Dashboard'] or 'Admin Dashboard' }}</h1>
+        <p>{{ lang['Full system overview and management'] or 'Full system overview and management' }}</p>
     </div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        
-        async function apiCall(url, options = {}) {
-            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-            const response = await fetch(url, { ...options, headers });
-            if (!response.ok) throw await response.json();
-            return response.json();
-        }
-
-        async function loadUser() {
-            const data = await apiCall('/api/auth/me');
-            document.getElementById('user-name').textContent = data.name || data.email;
-        }
-
-        async function loadUsers() {
-            const data = await apiCall('/api/admin/users');
-            document.getElementById('users-list').innerHTML = data.users.map(user => `
-                <div class="p-4 bg-gray-50 rounded-xl border-l-4 ${user.role === 'admin' ? 'border-purple-500' : 'border-blue-500'}">
-                    <div class="font-semibold">${user.name || user.email}</div>
-                    <div class="text-sm text-gray-600">${user.role.toUpperCase()}</div>
-                </div>
-            `).join('');
-        }
-
-        async function loadAudit() {
-            const data = await apiCall('/api/admin/audit');
-            document.getElementById('audit-list').innerHTML = data.audits.slice(0, 10).map(audit => `
-                <div class="p-4 bg-blue-50 rounded-xl">
-                    <div class="font-semibold">${audit.action}</div>
-                    <div class="text-sm text-gray-600">User: ${audit.actorUid.slice(0,8)}...</div>
-                    <div class="text-xs text-gray-500">${audit.timestamp}</div>
-                </div>
-            `).join('');
-        }
-
-        function logout() {
-            localStorage.removeItem('token');
-            window.location.href = '/';
-        }
-
-        loadUser().then(() => {
-            loadUsers();
-            loadAudit();
-        }).catch(() => window.location.href = '/');
-    </script>
-</body>
-</html>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" style="color: var(--primary);">1,247</div>
+            <div class="stat-label">{{ lang['Total Users'] or 'Total Users' }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="color: var(--secondary);">342</div>
+            <div class="stat-label">{{ lang['Active Sessions'] or 'Active Sessions' }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="color: var(--danger);">5</div>
+            <div class="stat-label">{{ lang['Security Events'] or 'Security Events' }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="color: var(--accent);">99.9%</div>
+            <div class="stat-label">{{ lang['Uptime'] or 'Uptime' }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
