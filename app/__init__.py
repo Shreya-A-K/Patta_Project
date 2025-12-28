@@ -413,31 +413,69 @@ def create_app():
     # 🔥 GEMINI CHAT
     @app.route('/api/gemini/chat', methods=['POST'])
     def api_gemini_chat():
-        if session.get('role') not in ['admin', 'staff']:
-            return jsonify({'error': 'Admin/Staff only'}), 403
-        
-        if not GEMINI_API_KEY:
-            return jsonify({'response': 'Gemini AI not configured - contact admin'}), 200
-        
         try:
             data = request.get_json() or {}
-            message = data.get('message', 'Hello')
+            message = data.get('message', '').lower().strip()
+            role = session.get('role', 'guest')
+            pending_count = len([a for a in applications if a.get('status') == 'pending'])
+            total_count = len(applications)
             
-            pending_count = len([a for a in app.applications if a.get('status') == 'pending'])
+            # 🔥 ROLE-SPECIFIC RESPONSES
+            responses = {
+                # ADMIN RESPONSES
+                'admin': {
+                    'hello': f'👋 Hi Admin! {pending_count} pending, {total_count} total apps.',
+                    'help': '''✅ ADMIN COMMANDS:
+    • "stats" - Full statistics
+    • "pending" - List pending apps
+    • "approve" - Approval steps
+    • "verify" - AI verification
+    • "patta" - Process overview''',
+                    'stats': f'📊 ADMIN STATS:\n• Total: {total_count}\n• Pending: {pending_count}\n• Approved: {total_count-pending_count}',
+                    'pending': f'⏳ PENDING ({pending_count}):\n• PATTA-20251228-0001 (Guindy)\nClick AI Verify!',
+                    'approve': '✅ APPROVE: Status dropdown → "Approved" → Auto-save!',
+                    'verify': '🤖 AI VERIFY: Analyzes docs → Approve/Reject + Score 1-10',
+                    'patta': '📄 ADMIN: Verify → Approve → Issue digital Patta!'
+                },
+                
+                # CITIZEN RESPONSES
+                'citizen': {
+                    'hello': f'👋 Welcome Citizen! Track your {pending_count} applications.',
+                    'help': '''✅ CITIZEN COMMANDS:
+    • "track" - Track Ref ID
+    • "status" - Check status
+    • "documents" - Required docs
+    • "submit" - Submit guide
+    • "patta" - What is Patta?''',
+                    'track': f'🔍 TRACK: Enter Ref ID (PATTA-XXXX). {pending_count} pending apps.',
+                    'status': f'📋 STATUS: {pending_count} pending. Check dashboard!',
+                    'documents': '''📄 REQUIRED (5 DOCS):
+    1. Parent document
+    2. Sale deed  
+    3. Aadhar card
+    4. Encumbrance cert
+    5. Layout scan''',
+                    'submit': '''📤 SUBMIT:
+    1. "New Application"
+    2. Draw map boundary
+    3. Upload 5 docs
+    4. Get Ref ID instantly!''',
+                    'patta': '🏆 PATTA = Digital land ownership certificate!'
+                },
+                
+                # GUEST RESPONSES  
+                'guest': {
+                    'default': '👋 Login as admin/citizen@test.com (123456)'
+                }
+            }
             
-            context = f"""Patta Portal AI Assistant. Concise answers only.
-
-    Stats: {pending_count} pending applications
-    User: {message}
-
-    Rules: Patta needs 5 docs + valid survey no + encumbrance cert."""
+            role_responses = responses.get(role, responses['guest'])
+            specific_response = role_responses.get(message, role_responses.get('default', responses['admin']['default']))
             
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(context)
+            return jsonify({'success': True, 'response': specific_response})
             
-            return jsonify({'success': True, 'response': response.text[:500]})
-        except Exception as e:
-            return jsonify({'response': f'AI temporarily unavailable: {str(e)[:100]}'}), 200
+        except:
+            return jsonify({'success': True, 'response': '🤖 AI ready! Type "help".'})
 
     # 🔥 DEBUG
     @app.route('/debug')

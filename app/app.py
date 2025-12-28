@@ -167,15 +167,40 @@ def chat_api():
         message = data.get('message', '').lower().strip()
         
         response = CHAT_RESPONSES.get(message, CHAT_RESPONSES['default'])
-        return jsonify({'success': True, 'response': response})
+        return jsonify({'response': response})  # ← FIXED: 'response' not nested in 'success'
     except:
-        return jsonify({'success': True, 'response': CHAT_RESPONSES['help']})
+        return jsonify({'response': CHAT_RESPONSES['help']})
+
 
 @app.route('/api/admin/applications')
 def api_apps():
     if session.get('role') != 'admin':
         return jsonify({'error': 'Admin only'}), 403
     return jsonify(applications)
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email', '').strip().lower()
+    password = request.form.get('password', '')
+    
+    users = {  # ← ADD THIS
+        'admin@test.com': {'role': 'admin', 'name': 'Admin User', 'password': '123456'},
+        'staff@test.com': {'role': 'staff', 'name': 'Staff User', 'password': '123456'},
+        'citizen@test.com': {'role': 'citizen', 'name': 'Citizen User', 'password': '123456'},
+    }
+    
+    user = users.get(email)
+    if user and user['password'] == password:  # ← FIXED CHECK
+        session['role'] = user['role']
+        session['name'] = user['name']
+        session['email'] = email
+        
+        if user['role'] == 'admin': return redirect('/admin')
+        if user['role'] == 'staff': return redirect('/staff')
+        return redirect('/citizen')
+    
+    return redirect('/')
+
 
 if __name__ == '__main__':
     app.run()
