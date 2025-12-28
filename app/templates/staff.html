@@ -1,71 +1,66 @@
 {% extends "base.html" %}
 
-{% block title %}Staff Dashboard - Patta Approvals{% endblock %}
+{% block title %}{{ lang['Staff Dashboard - Patta Verification'] or 'Staff Dashboard - Patta Verification' }}{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="welcome-card">
-        <h1 class="welcome-title">Staff Dashboard</h1>
-        <p>Manage Patta Applications - State-wise Analytics</p>
+        <h1 class="welcome-title">🔍 {{ lang['Patta Verification Dashboard'] or 'Patta Verification Dashboard' }}</h1>
+        <p>Review & approve land document applications</p>
     </div>
 
-    <!-- ✅ STATE-WISE STATS -->
-    <div class="form-card" style="margin-bottom: 2rem;">
-        <h3 style="margin-bottom: 1.5rem;">📊 Application Statistics</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-            <div class="stat-card">
-                <div class="stat-number" id="totalApps">0</div>
-                <div class="stat-label">Total Applications</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="pendingApps">0</div>
-                <div class="stat-label">Pending</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="approvedApps">0</div>
-                <div class="stat-label">Approved</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="rejectedApps">0</div>
-                <div class="stat-label">Rejected</div>
-            </div>
+    <!-- Stats Grid -->
+    <div class="stats-grid" style="margin-bottom: 2rem;">
+        <div class="stat-card">
+            <div class="stat-number" style="color: #10b981;" id="pendingCount">0</div>
+            <div class="stat-label">⏳ Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="color: #065f46;" id="approvedCount">0</div>
+            <div class="stat-label">✅ Approved</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="color: #991b1b;" id="rejectedCount">0</div>
+            <div class="stat-label">❌ Rejected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="color: var(--primary);" id="totalAppsCount">0</div>
+            <div class="stat-label">Total</div>
         </div>
     </div>
 
-    <!-- ✅ STATE-WISE BREAKDOWN -->
+    <!-- Search & Filter -->
     <div class="form-card" style="margin-bottom: 2rem;">
-        <h3 style="margin-bottom: 1rem;">🗺️ By State</h3>
-        <div style="overflow-x: auto;">
-            <table class="table" id="stateTable">
-                <thead>
-                    <tr>
-                        <th>State</th>
-                        <th>Total</th>
-                        <th>Pending</th>
-                        <th>Approved</th>
-                        <th>Rejected</th>
-                        <th>% Pending</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <h3>🔎 Search Applications</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 200px auto; gap: 1rem; align-items: end;">
+            <input type="text" id="searchRef" class="form-input" placeholder="Reference ID (e.g., PATTA-20251228-0001)" oninput="filterApplications()">
+            <select id="statusFilter" class="form-input" onchange="filterApplications()">
+                <option value="">All Status</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="approved">✅ Approved</option>
+                <option value="rejected">❌ Rejected</option>
+            </select>
+            <input type="date" id="dateFilter" class="form-input" onchange="filterApplications()">
+            <button class="btn btn-primary" onclick="loadApplications()">🔄 Refresh</button>
         </div>
     </div>
 
-    <!-- ✅ PENDING APPLICATIONS -->
+    <!-- Applications Table -->
     <div class="form-card">
-        <h3 style="margin-bottom: 1.5rem;">✅ Pending Applications <span id="pendingCount">(0)</span></h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3>📋 Applications <span id="totalCount" style="color: #10b981; font-weight: 700;">(0)</span></h3>
+            <button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+        </div>
+        
         <div style="overflow-x: auto;">
             <table class="table" id="applicationsTable">
                 <thead>
                     <tr>
                         <th>Ref ID</th>
-                        <th>State</th>
-                        <th>District</th>
-                        <th>Survey No.</th>
+                        <th>Property</th>
                         <th>Location</th>
-                        <th>Date</th>
                         <th>Status</th>
+                        <th>Submitted</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -73,163 +68,288 @@
             </table>
         </div>
     </div>
+
+    <!-- Document Viewer Modal -->
+    <div id="docModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                <h3 id="modalTitle">Document Viewer</h3>
+                <div>
+                    <button class="btn btn-secondary" onclick="zoomIn()">🔍+</button>
+                    <button class="btn btn-secondary" onclick="zoomOut()">🔍-</button>
+                    <button class="btn btn-primary" onclick="toggleFullScreen()">⛶</button>
+                    <span class="btn-close" onclick="closeModal()" style="font-size: 2rem; cursor: pointer; padding: 0 1rem;">&times;</span>
+                </div>
+            </div>
+            <div id="docViewer" style="height: 70vh; position: relative;">
+                <iframe id="docFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+                <img id="imgViewer" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+            </div>
+            <div id="modalActions" style="padding-top: 1rem; text-align: center;"></div>
+        </div>
+    </div>
 </div>
 
 <style>
-.stat-card {
-    background: linear-gradient(135deg, var(--primary) 0%, #10b981 100%);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 1rem;
-    text-align: center;
-}
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+.stat-card { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center; }
 .stat-number { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.25rem; }
-.stat-label { font-size: 0.95rem; opacity: 0.9; }
+.stat-label { color: var(--text-muted); font-size: 0.95rem; }
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal-content { background: white; border-radius: 1rem; box-shadow: 0 25px 50px rgba(0,0,0,0.25); max-width: 90vw; max-height: 90vh; overflow: auto; }
 .table { width: 100%; border-collapse: collapse; }
-.table th { background: var(--gray-100); font-weight: 600; padding: 1rem 0.75rem; }
-.table td { padding: 1rem 0.75rem; border-bottom: 1px solid var(--gray-200); }
-.action-btn { padding: 0.5rem 1rem; margin: 0 0.25rem; border-radius: 0.5rem; font-size: 0.875rem; }
+.table th, .table td { padding: 1rem 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.table th { background: #f8fafc; font-weight: 600; }
+.status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+.status-pending { background: #fef3c7; color: #d97706; }
+.status-approved { background: #d1fae5; color: #065f46; }
+.status-rejected { background: #fee2e2; color: #991b1b; }
+.action-btn { padding: 0.5rem 1rem; margin: 0 0.25rem; border-radius: 0.5rem; font-size: 0.85rem; cursor: pointer; border: none; }
+.btn-view { background: #3b82f6; color: white; }
+.btn-approve { background: #10b981; color: white; }
+.btn-reject { background: #ef4444; color: white; }
+.btn:hover { opacity: 0.9; }
 </style>
 
 <script>
 let applications = [];
+let currentApp = null;
+let zoomLevel = 1;
 
 document.addEventListener('DOMContentLoaded', loadApplications);
 
-async function loadApplications() {
-    try {
-        const res = await fetch('/api/staff/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await res.json();
-        applications = data.applications || [];
-        renderStats();
-        renderStateTable();
-        renderApplicationsTable();
-    } catch(e) {
-        console.error('Failed to load applications');
-    }
-}
-
-function renderStats() {
-    const total = applications.length;
-    const pending = applications.filter(a => a.status === 'pending').length;
-    const approved = applications.filter(a => a.status === 'approved').length;
-    const rejected = applications.filter(a => a.status === 'rejected').length;
+function filterApplications() {
+    const searchRef = document.getElementById('searchRef').value.toUpperCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
     
-    document.getElementById('totalApps').textContent = total;
-    document.getElementById('pendingApps').textContent = pending;
-    document.getElementById('approvedApps').textContent = approved;
-    document.getElementById('rejectedApps').textContent = rejected;
-    document.getElementById('pendingCount').textContent = `(${pending})`;
+    let filtered = applications;
+    
+    if (searchRef) filtered = filtered.filter(app => app.ref_id.includes(searchRef));
+    if (statusFilter) filtered = filtered.filter(app => app.status === statusFilter);
+    if (dateFilter) filtered = filtered.filter(app => app.submitted_at.startsWith(dateFilter));
+    
+    renderFilteredTable(filtered);
 }
 
-function renderStateTable() {
-    const stateStats = {};
-    applications.forEach(app => {
-        const state = app.district.split(',')[0] || 'Unknown';
-        if (!stateStats[state]) {
-            stateStats[state] = { total: 0, pending: 0, approved: 0, rejected: 0 };
-        }
-        stateStats[state].total++;
-        stateStats[state][app.status]++;
+function renderFilteredTable(filteredApps) {
+    const tbody = document.querySelector('#applicationsTable tbody');
+    tbody.innerHTML = '';
+    
+    filteredApps.forEach(app => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${app.ref_id}</strong></td>
+            <td>${app.surveyNo || 'N/A'} / ${app.subdivNo || ''}</td>
+            <td>${app.village}, ${app.taluk}</td>
+            <td><span class="status-badge status-${app.status}">${app.status.toUpperCase()}</span></td>
+            <td>${new Date(app.submitted_at).toLocaleDateString()}</td>
+            <td>
+                <button class="action-btn btn-view" onclick="viewApplication('${app.ref_id}')">👁️ View Docs</button>
+                ${app.status === 'pending' ? `
+                    <button class="action-btn btn-approve" onclick="updateStatus('${app.ref_id}', 'approved')">✅ Approve</button>
+                    <button class="action-btn btn-reject" onclick="updateStatus('${app.ref_id}', 'rejected')">❌ Reject</button>
+                ` : ''}
+            </td>
+        `;
+        tbody.appendChild(row);
     });
     
-    const tbody = document.querySelector('#stateTable tbody');
-    tbody.innerHTML = Object.entries(stateStats)
-        .sort((a,b) => b[1].total - a[1].total)
-        .map(([state, stats]) => {
-            const pendingPct = stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : 0;
-            return `
-                <tr>
-                    <td><strong>${state}</strong></td>
-                    <td>${stats.total}</td>
-                    <td>${stats.pending}</td>
-                    <td>${stats.approved}</td>
-                    <td>${stats.rejected}</td>
-                    <td>${pendingPct}%</td>
-                </tr>
-            `;
-        }).join('');
+    document.getElementById('totalCount').textContent = `(${filteredApps.length})`;
 }
 
-function renderApplicationsTable() {
-    const pendingApps = applications.filter(a => a.status === 'pending');
-    
-    const tbody = document.querySelector('#applicationsTable tbody');
-    tbody.innerHTML = pendingApps.map(app => {
-        const date = new Date(app.created_at).toLocaleDateString();
-        const [lat, lng] = app.lat ? [app.lat.slice(0,10), app.lng.slice(0,10)] : ['N/A', 'N/A'];
+async function loadApplications() {
+    try {
+        const url = new URL('/api/patta/applications', window.location.origin);
+        const searchRef = document.getElementById('searchRef').value.toUpperCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const dateFilter = document.getElementById('dateFilter').value;
         
-        return `
-            <tr>
-                <td><strong>${app.reference}</strong></td>
-                <td>${app.district.split(',')[0] || 'N/A'}</td>
-                <td>${app.district}</td>
-                <td>${app.surveyNo || app.subdivNo || 'N/A'}</td>
-                <td>${lat}, ${lng}</td>
-                <td>${date}</td>
-                <td><span class="status-pending">⏳ Pending</span></td>
-                <td>
-                    <button class="action-btn" style="background: #10b981; color: white;" onclick="viewApplication('${app.reference}')">
-                        👁️ View
-                    </button>
-                    <button class="action-btn" style="background: #3b82f6; color: white;" onclick="approve('${app.reference}')">
-                        ✅ Approve
-                    </button>
-                    <button class="action-btn" style="background: #ef4444; color: white;" onclick="reject('${app.reference}')">
-                        ❌ Reject
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-async function approve(reference) {
-    if (!confirm(`Approve application ${reference}?`)) return;
-    
-    try {
-        await fetch(`/api/staff/approve/${reference}`, {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        loadApplications(); // Refresh
-        alert('✅ Approved!');
-    } catch(e) {
-        alert('❌ Approval failed');
+        if (searchRef) url.searchParams.append('search', searchRef);
+        if (statusFilter) url.searchParams.append('status', statusFilter);
+        if (dateFilter) url.searchParams.append('date', dateFilter);
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        applications = await response.json();
+        renderFilteredTable(applications);
+        updateStats();
+    } catch (error) {
+        console.error('Load failed:', error);
+        alert('Failed to load applications: ' + error.message);
     }
 }
 
-async function reject(reference) {
-    const reason = prompt('Rejection reason (optional):');
-    if (!confirm(`Reject application ${reference}?`)) return;
+function updateStats() {
+    const pending = applications.filter(app => app.status === 'pending').length;
+    const approved = applications.filter(app => app.status === 'approved').length;
+    const rejected = applications.filter(app => app.status === 'rejected').length;
+    const total = applications.length;
+    
+    document.getElementById('pendingCount').textContent = pending;
+    document.getElementById('approvedCount').textContent = approved;
+    document.getElementById('rejectedCount').textContent = rejected;
+    document.getElementById('totalAppsCount').textContent = total;
+}
+
+async function viewApplication(refId) {
+    currentApp = applications.find(app => app.ref_id === refId);
+    if (!currentApp) return;
+    
+    document.getElementById('modalTitle').textContent = `${currentApp.ref_id} - ${currentApp.village}`;
+    showDocument('parentDoc');
+    document.getElementById('docModal').style.display = 'flex';
+}
+
+function showDocument(docType) {
+    const docs = currentApp.documents;
+    if (!docs[docType]) return;
+    
+    const url = docs[docType];
+    const frame = document.getElementById('docFrame');
+    const img = document.getElementById('imgViewer');
+    
+    zoomLevel = 1;
+    updateZoom();
+    
+    if (url.includes('.pdf')) {
+        frame.style.display = 'block';
+        img.style.display = 'none';
+        frame.src = url + '#view=Fit';
+    } else {
+        frame.style.display = 'none';
+        img.style.display = 'block';
+        img.src = url;
+        img.style.transform = `scale(${zoomLevel})`;
+    }
+    
+    updateModalActions(docType);
+}
+
+function updateModalActions(currentDoc) {
+    const actions = document.getElementById('modalActions');
+    const docs = ['parentDoc', 'saleDeed', 'aadharCard', 'encumbCert', 'layoutScan'];
+    const currentIndex = docs.indexOf(currentDoc);
+    
+    actions.innerHTML = `
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
+            ${docs.map((doc, i) => `
+                <button class="btn ${i === currentIndex ? 'btn-primary' : 'btn-secondary'}" 
+                        onclick="showDocument('${doc}')" style="padding: 0.5rem 1rem;">
+                    ${getDocEmoji(doc)} ${doc.replace(/([A-Z])/g, ' $1').toUpperCase()}
+                </button>
+            `).join('')}
+        </div>
+        ${currentApp.status === 'pending' ? `
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn btn-approve action-btn" onclick="updateStatus('${currentApp.ref_id}', 'approved')" style="padding: 0.75rem 2rem;">
+                    ✅ APPROVE ALL DOCUMENTS
+                </button>
+                <button class="btn btn-reject action-btn" onclick="updateStatus('${currentApp.ref_id}', 'rejected')" style="padding: 0.75rem 2rem;">
+                    ❌ REJECT APPLICATION
+                </button>
+            </div>
+        ` : ''}
+    `;
+}
+
+function getDocEmoji(docType) {
+    const emojis = {
+        parentDoc: '📜', saleDeed: '📋', aadharCard: '🆔', 
+        encumbCert: '🔒', layoutScan: '🗺️'
+    };
+    return emojis[docType] || '📄';
+}
+
+async function updateStatus(refId, status) {
+    if (!confirm(`Mark ${refId} as ${status.toUpperCase()}?`)) return;
     
     try {
-        await fetch(`/api/staff/reject/${reference}`, {
+        const response = await fetch(`/api/patta/${refId}/status`, {
             method: 'POST',
             headers: { 
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ reason: reason || 'Not specified' })
+            body: JSON.stringify({ status: status })
         });
-        loadApplications();
-        alert('❌ Rejected!');
-    } catch(e) {
-        alert('❌ Rejection failed');
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned HTML instead of JSON');
+        }
+        
+        const result = await response.json();
+        console.log('API Response:', result);
+        
+        if (response.ok && result.success) {
+            await loadApplications();
+            if (currentApp && currentApp.ref_id === refId) {
+                closeModal();
+            }
+            alert(`✅ ${refId} → ${status.toUpperCase()} SUCCESS!`);
+        } else {
+            throw new Error(result.error || `HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Update error:', error);
+        alert(`❌ Update failed: ${error.message}`);
     }
 }
 
-function viewApplication(reference) {
-    const app = applications.find(a => a.reference === reference);
-    if (app) {
-        alert(`Reference: ${app.reference}\nDistrict: ${app.district}\nSurvey: ${app.surveyNo}\nLat/Lng: ${app.lat}, ${app.lng}\nBoundary: ${JSON.stringify(app.boundary)}`);
-        // TODO: Open modal with map preview
+function exportCSV() {
+    const headers = ['Ref ID', 'Survey No', 'Village', 'Status', 'Submitted'];
+    const csv = [
+        headers.join(','),
+        ...applications.map(app => [
+            app.ref_id,
+            `${app.surveyNo || ''}/${app.subdivNo || ''}`,
+            app.village,
+            app.status,
+            new Date(app.submitted_at).toLocaleDateString()
+        ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `patta-applications-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+}
+
+function closeModal() { 
+    document.getElementById('docModal').style.display = 'none'; 
+}
+
+function zoomIn() { 
+    zoomLevel = Math.min(zoomLevel + 0.2, 3); 
+    updateZoom(); 
+}
+
+function zoomOut() { 
+    zoomLevel = Math.max(zoomLevel - 0.2, 0.5); 
+    updateZoom(); 
+}
+
+function updateZoom() {
+    document.getElementById('imgViewer').style.transform = `scale(${zoomLevel})`;
+}
+
+function toggleFullScreen() {
+    const modal = document.getElementById('docModal');
+    if (!document.fullscreenElement) {
+        modal.requestFullscreen();
+    } else {
+        document.exitFullscreen();
     }
 }
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('docModal').style.display === 'flex') {
+        closeModal();
+    }
+});
 </script>
 {% endblock %}

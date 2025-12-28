@@ -1,31 +1,227 @@
 {% extends "base.html" %}
 
-{% block title %}{{ lang['Admin Dashboard'] or 'Admin Dashboard' }}{% endblock %}
+{% block title %}Admin Dashboard - Patta Portal{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="welcome-card">
-        <h1 class="welcome-title">{{ lang['Admin Dashboard'] or 'Admin Dashboard' }}</h1>
-        <p>{{ lang['Full system overview and management'] or 'Full system overview and management' }}</p>
+        <h1 class="welcome-title">👑 Admin Dashboard</h1>
+        <p>FULL ACCESS - All Applications + Staff Activity Tracking</p>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-number" style="color: var(--primary);">1,247</div>
-            <div class="stat-label">{{ lang['Total Users'] or 'Total Users' }}</div>
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); padding: 2rem; border-radius: 1rem; text-align: center;">
+            <h3 style="color: white; margin: 0;">📊 Total Applications</h3>
+            <div id="totalApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number" style="color: var(--secondary);">342</div>
-            <div class="stat-label">{{ lang['Active Sessions'] or 'Active Sessions' }}</div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669); padding: 2rem; border-radius: 1rem; text-align: center;">
+            <h3 style="color: white; margin: 0;">⏳ Pending</h3>
+            <div id="pendingApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number" style="color: var(--danger);">5</div>
-            <div class="stat-label">{{ lang['Security Events'] or 'Security Events' }}</div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 2rem; border-radius: 1rem; text-align: center;">
+            <h3 style="color: white; margin: 0;">✅ Approved</h3>
+            <div id="approvedApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number" style="color: var(--accent);">99.9%</div>
-            <div class="stat-label">{{ lang['Uptime'] or 'Uptime' }}</div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 2rem; border-radius: 1rem; text-align: center;">
+            <h3 style="color: white; margin: 0;">❌ Rejected</h3>
+            <div id="rejectedApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="form-card" style="margin-bottom: 2rem;">
+        <h3>🔍 Filter Applications</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem;">
+            <input type="text" id="searchInput" class="form-input" placeholder="Search Ref ID..." onkeyup="filterApplications()">
+            <input type="date" id="dateFilter" class="form-input" onchange="filterApplications()">
+            <select id="statusFilter" class="form-input" onchange="filterApplications()">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadAdminApplications()">🔄 Refresh</button>
+        </div>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="form-card">
+        <h3>📋 All Applications <span id="loadingSpinner" style="display:none;">⏳ Loading...</span></h3>
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ref ID</th>
+                        <th>Citizen</th>
+                        <th>Property</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Days</th>
+                        <th>Approved By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTableBody">
+                    <tr><td colspan="8" style="text-align:center; padding:3rem; color:#6b7280;">Click Refresh to load applications</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<style>
+.stat-card { padding: 2rem; border-radius: 1rem; text-align: center; }
+.table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.table th, .table td { padding: 1rem 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.table th { background: #f8fafc; font-weight: 600; position: sticky; top: 0; }
+.status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; }
+.pending-badge { background: #fef3c7; color: #d97706; }
+.approved-badge { background: #d1fae5; color: #065f46; }
+.rejected-badge { background: #fee2e2; color: #991b1b; }
+.btn-sm { 
+    padding: 0.375rem 0.75rem; 
+    font-size: 0.875rem; 
+    border: 1px solid; 
+    border-radius: 0.375rem; 
+    cursor: pointer; 
+    background: white; 
+    text-decoration: none;
+    display: inline-block;
+}
+.btn-sm.btn-success { background: #10b981; color: white; border-color: #059669; }
+.btn-sm.btn-danger { background: #ef4444; color: white; border-color: #dc2626; }
+.btn-sm.btn-secondary { background: #6b7280; color: white; border-color: #4b5563; }
+.btn-sm:hover { opacity: 0.9; transform: translateY(-1px); }
+</style>
+
+<script>
+let allApplications = [];
+
+// ✅ HELPER FUNCTIONS FIRST
+function getStatusBadge(status) {
+    const classes = {
+        'pending': 'status-badge pending-badge',
+        'approved': 'status-badge approved-badge', 
+        'rejected': 'status-badge rejected-badge'
+    };
+    return `<span class="${classes[status] || 'status-badge'}">${status.toUpperCase()}</span>`;
+}
+
+function viewStaffDocs(refId) {
+    window.open(`/staff#searchRef=${encodeURIComponent(refId)}`, '_blank');
+}
+
+// ✅ FIXED: NO response.ok check - handles ALL responses
+async function loadAdminApplications() {
+    const spinner = document.getElementById('loadingSpinner');
+    spinner.style.display = 'inline';
+    
+    try {
+        const response = await fetch('/api/admin/applications');
+        const data = await response.json();
+        
+        // Safe array handling
+        allApplications = Array.isArray(data) ? data : [];
+        renderAdminTable(allApplications);
+        updateStats();
+        
+    } catch (error) {
+        console.error('Load failed:', error);
+        document.getElementById('adminTableBody').innerHTML = 
+            '<tr><td colspan="8" style="text-align:center; padding:3rem; color:#6b7280;">No applications found - Submit one from Citizen portal</td></tr>';
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+function renderAdminTable(apps = allApplications) {
+    const tbody = document.getElementById('adminTableBody');
+    
+    if (apps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:3rem; color:#6b7280;">No applications found - Submit one from Citizen portal</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = apps.map(app => {
+        const statusBadge = getStatusBadge(app.status || 'pending');
+        const approvedBy = app.approved_by_staff || 'N/A';
+        const days = app.days_pending || 0;
+        
+        const actions = (app.status || 'pending') === 'pending' ? 
+            `<button class="btn-sm btn-success" onclick="updateStatus('${app.ref_id}', 'approved')">✅ Approve</button>
+             <button class="btn-sm btn-danger" onclick="updateStatus('${app.ref_id}', 'rejected')">❌ Reject</button>` : 
+            `<span class="status-badge approved-badge">Complete</span>`;
+        
+        return `
+            <tr>
+                <td><strong style="color: #3b82f6;">${app.ref_id || 'N/A'}</strong></td>
+                <td>${app.citizen_email || 'N/A'}</td>
+                <td>${app.surveyNo || 'N/A'} / ${app.subdivNo || ''}</td>
+                <td>${app.village || 'N/A'}, ${app.taluk || 'N/A'}${app.district ? ', ' + app.district : ''}</td>
+                <td>${statusBadge}</td>
+                <td style="color: ${days > 7 ? '#ef4444' : '#10b981'};">${days} days</td>
+                <td>${approvedBy}</td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn-sm btn-secondary" onclick="viewStaffDocs('${app.ref_id}')">📁 View in Staff</button>
+                        ${actions}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateStats() {
+    const total = allApplications.length;
+    const pending = allApplications.filter(a => a.status === 'pending').length;
+    const approved = allApplications.filter(a => a.status === 'approved').length;
+    const rejected = allApplications.filter(a => a.status === 'rejected').length;
+    
+    document.getElementById('totalApps').textContent = total;
+    document.getElementById('pendingApps').textContent = pending;
+    document.getElementById('approvedApps').textContent = approved;
+    document.getElementById('rejectedApps').textContent = rejected;
+}
+
+function filterApplications() {
+    const search = document.getElementById('searchInput').value.toUpperCase();
+    const status = document.getElementById('statusFilter').value;
+    const date = document.getElementById('dateFilter').value;
+    
+    let filtered = allApplications;
+    if (search) filtered = filtered.filter(a => a.ref_id?.includes(search));
+    if (status) filtered = filtered.filter(a => a.status === status);
+    if (date) filtered = filtered.filter(a => a.submitted_at?.startsWith(date));
+    
+    renderAdminTable(filtered);
+}
+
+async function updateStatus(refId, status) {
+    if (!confirm(`Mark ${refId} as ${status.toUpperCase()}?`)) return;
+    
+    try {
+        const response = await fetch(`/api/patta/${refId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: status })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            await loadAdminApplications();
+            alert(`✅ ${refId} → ${status.toUpperCase()} SUCCESS!`);
+        } else {
+            alert(`❌ ${result.error || 'Update failed'}`);
+        }
+    } catch (error) {
+        alert(`❌ Network error: ${error.message}`);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(loadAdminApplications, 500);
+});
+</script>
 {% endblock %}

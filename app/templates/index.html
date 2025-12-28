@@ -1,73 +1,41 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="login-form">
-    <div class="form-card">
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Welcome Back</h1>
-            <p style="color: var(--text-muted);">Sign in to your dashboard</p>
-        </div>
-
-        <form id="loginForm">
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" id="email" class="form-input" required>
-                <div id="emailError" class="error"></div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" id="password" class="form-input" required>
-                <div id="passwordError" class="error"></div>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
-                <i class="fas fa-sign-in-alt"></i> Sign In
-            </button>
-        </form>
-
-        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-            <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Demo Accounts</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
-                <div onclick="setDemo('citizen')" style="cursor: pointer; padding: 0.75rem; background: var(--secondary); color: white; border-radius: 0.5rem; text-align: center;">citizen@test.com</div>
-                <div onclick="setDemo('staff')" style="cursor: pointer; padding: 0.75rem; background: var(--accent); color: white; border-radius: 0.5rem; text-align: center;">staff@test.com</div>
-                <div onclick="setDemo('admin')" style="cursor: pointer; padding: 0.75rem; background: var(--danger); color: white; border-radius: 0.5rem; text-align: center;">admin@test.com</div>
-            </div>
-            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-                Password: <strong>123456</strong>
-            </p>
-        </div>
+<div style="width:100%; display:flex; justify-content:center; padding:3rem 1rem;">
+  <div style="max-width:420px; width:100%; background:#ffffff; border:1px solid var(--border);
+              border-radius:16px; padding:2.5rem 2rem; box-shadow:var(--shadow);">
+    <div style="text-align:center; margin-bottom:2rem;">
+      <h1 style="font-size:2rem; font-weight:700; margin-bottom:0.5rem;">Patta Portal Login</h1>
+      <p style="color:var(--text-muted); font-size:0.95rem;">Sign in with your email</p>
     </div>
+
+    <form method="POST" action="/login">
+      <div style="margin-bottom:1rem;">
+        <label style="display:block; font-weight:500; margin-bottom:0.25rem;">Email</label>
+        <input type="email" name="email" required
+               style="width:100%; padding:0.6rem 0.75rem; border-radius:8px;
+                      border:1px solid var(--border); font-size:0.95rem;">
+      </div>
+
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:block; font-weight:500; margin-bottom:0.25rem;">Password</label>
+        <input type="password" name="password" required
+               style="width:100%; padding:0.6rem 0.75rem; border-radius:8px;
+                      border:1px solid var(--border); font-size:0.95rem;">
+      </div>
+
+      {% if error %}
+        <div style="color:#b91c1c; font-size:0.9rem; margin-bottom:0.75rem;">
+          {{ error }}
+        </div>
+      {% endif %}
+
+      <button type="submit"
+              class="btn btn-primary"
+              style="width:100%; justify-content:center; padding:0.9rem; font-size:1rem;">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </form>
+  </div>
 </div>
-
-<script>
-    // Demo account quick-fill
-    function setDemo(role) {
-        document.getElementById('email').value = `${role}@test.com`;
-        document.getElementById('password').value = '123456';
-    }
-
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok && data.token) {
-                localStorage.setItem('token', data.token);
-                window.location.href = '/dashboard';
-            } else {
-                alert(data.error || 'Login failed');
-            }
-        } catch (error) {
-            alert('Network error. Please try again.');
-        }
-    });
-</script>
 {% endblock %}

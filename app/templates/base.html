@@ -3,159 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Dashboard{% endblock %}</title>
+    <title>{% block title %}Patta Portal{% endblock %}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary: #3b82f6;
-            --primary-dark: #1d4ed8;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
             --secondary: #10b981;
             --accent: #f59e0b;
             --danger: #ef4444;
-            --bg: #f8fafc;
+            --bg: #ffffff;              /* 🔥 WHITE BACKGROUND */
             --card: #ffffff;
+            --card-glass: rgba(248, 250, 252, 0.8);
             --text: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Inter', sans-serif; 
-            background: var(--bg); 
+            background: var(--bg);      /* 🔥 PURE WHITE */
             color: var(--text);
+            min-height: 100vh;
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        /* 🔥 PERFECT CONTAINER */
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 0 1.5rem; 
+        }
+        
+        /* 🔥 CLEAN NAVBAR */
         .navbar { 
-            background: var(--card); 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            background: var(--card);    /* 🔥 WHITE NAVBAR */
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
             position: sticky; 
             top: 0; 
-            z-index: 100;
+            z-index: 200;
+            padding: 0.5rem 0;
         }
         .nav-content { 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            padding: 1rem 0; 
+            height: 70px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
         }
-        .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .logo { 
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            color: var(--primary);
+        }
+
+        /* 🔥 USER CONTROLS - CLEAN WHITE */
+        .user-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 1rem; 
+        }
         .user-info { 
             display: flex; 
             align-items: center; 
             gap: 1rem; 
-            font-weight: 500;
+            padding: 0.5rem 1rem;
         }
-        .btn { 
-            padding: 0.5rem 1.25rem; 
-            border: none; 
-            border-radius: 0.5rem; 
-            font-weight: 500; 
-            cursor: pointer; 
-            text-decoration: none; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 0.5rem;
-            transition: all 0.2s;
-        }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); }
-        .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
-        .btn-danger { background: var(--danger); color: white; }
-
-        .main-content { padding: 2rem 0; min-height: calc(100vh - 80px); }
-        .welcome-card { 
-            background: var(--card); 
-            border-radius: 1rem; 
-            padding: 2.5rem; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-            margin-bottom: 2rem;
-            border: 1px solid var(--border);
-        }
-        .welcome-title { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        
+        /* 🔥 ROLE BADGES - SOLID COLORS */
         .role-badge { 
-            display: inline-flex; 
-            padding: 0.25rem 1rem; 
-            border-radius: 9999px; 
-            font-size: 0.875rem; 
+            padding: 0.5rem 1.25rem; 
+            border-radius: 25px; 
+            font-size: 0.85rem; 
             font-weight: 600; 
-            color: white;
+            color: white !important;
         }
         .role-citizen { background: var(--secondary); }
         .role-staff { background: var(--accent); }
         .role-admin { background: var(--danger); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-        .stat-card { 
-            background: var(--card); 
-            padding: 1.5rem; 
-            border-radius: 1rem; 
-            text-align: center; 
+        /* 🔥 PROFESSIONAL BUTTONS */
+        .btn { 
+            padding: 0.75rem 1.75rem; 
             border: 1px solid var(--border);
-            transition: transform 0.2s;
+            border-radius: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
+            white-space: nowrap;
         }
-        .stat-card:hover { transform: translateY(-2px); }
-        .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
-        .stat-label { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+        .btn-primary { 
+            background: var(--primary); 
+            color: white; 
+        }
+        .btn-primary:hover { 
+            background: var(--primary-dark); 
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .btn-secondary { 
+            background: white; 
+            color: var(--text); 
+        }
+        .btn-secondary:hover { 
+            background: #f8fafc; 
+            box-shadow: var(--shadow);
+        }
+        .btn-danger { 
+            background: var(--danger); 
+            color: white; 
+        }
+        .btn-danger:hover { 
+            background: #dc2626; 
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
 
-        .login-form { max-width: 400px; margin: 4rem auto; }
-        .form-card { 
-            background: var(--card); 
-            padding: 2.5rem; 
-            border-radius: 1rem; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            border: 1px solid var(--border);
+        /* 🔥 MAIN CONTENT */
+        .main-content { 
+            padding: 3rem 0; 
+            min-height: calc(100vh - 140px); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-        .form-input { 
-            width: 100%; 
-            padding: 0.875rem; 
-            border: 2px solid var(--border); 
-            border-radius: 0.5rem; 
-            font-size: 1rem; 
-            transition: border-color 0.2s;
-        }
-        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        .error { color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; }
 
-        /* ✅ LANGUAGE SELECTOR */
+        /* 🔥 LANGUAGE SELECTOR - WHITE */
         .language-selector {
             position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            z-index: 1000; 
-            background: var(--card); 
-            padding: 0.75rem; 
-            border-radius: 0.75rem; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            top: 85px; 
+            right: 2rem; 
+            z-index: 100; 
+            background: var(--card-glass); 
+            padding: 1rem 1.25rem; 
+            border-radius: 20px; 
+            box-shadow: var(--shadow);
             border: 1px solid var(--border);
         }
         .language-selector select {
             border: none; 
             background: none; 
-            font-size: 0.9rem; 
+            font-size: 1rem; 
             font-weight: 500;
             cursor: pointer;
             color: var(--text);
-        }
-        .language-selector option {
-            padding: 0.5rem;
+            padding: 0.25rem;
+            min-width: 140px;
         }
 
+        /* 🔥 MOBILE */
+        @media (max-width: 1024px) {
+            .container { padding: 0 1rem; }
+            .nav-content { padding: 0 1rem; }
+            .language-selector { right: 1rem; top: 80px; padding: 0.75rem 1rem; }
+        }
+        
         @media (max-width: 768px) {
-            .nav-content { flex-direction: column; gap: 1rem; }
-            .welcome-card { padding: 1.5rem; }
-            .welcome-title { font-size: 1.5rem; }
-            .language-selector { top: 10px; right: 10px; padding: 0.5rem; }
+            .nav-content { 
+                flex-direction: column; 
+                gap: 1.5rem; 
+                padding: 1rem;
+                height: auto;
+            }
+            .logo { font-size: 1.3rem; }
+            .user-controls { flex-wrap: wrap; justify-content: center; }
+            .btn { padding: 0.75rem 1.25rem; font-size: 0.85rem; }
+            .main-content { padding: 2rem 1rem; }
+            .language-selector { 
+                position: relative; 
+                top: auto; 
+                right: auto; 
+                margin: 1rem auto; 
+                width: fit-content;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-content { padding: 0.75rem; }
+            .btn { width: 100%; margin-bottom: 0.5rem; }
+            .user-info { flex-direction: column; text-align: center; gap: 0.75rem; }
         }
     </style>
 </head>
 <body>
-    <!-- ✅ MULTI-LANGUAGE SELECTOR -->
+    <!-- LANGUAGE SELECTOR -->
     <div class="language-selector">
         <select id="langSelect" onchange="changeLanguage(this.value)">
             <option value="en" {{ 'selected' if current_lang == 'en' else '' }}>🇺🇸 English</option>
@@ -168,62 +217,57 @@
         </select>
     </div>
 
+    <!-- NAVBAR -->
     <nav class="navbar">
-        <div class="container">
-            <div class="nav-content">
-                <div class="logo">
-                    <i class="fas fa-shield-alt"></i>
-                    {% if lang %} {{ lang.get('Secure Dashboard', 'Secure Dashboard') }} {% else %} Secure Dashboard {% endif %}
-                </div>
-                <div class="user-info" id="userInfo" style="display: none;">
-                    <span id="userName"></span>
-                    <span id="userRole" class="role-badge"></span>
-                    <button class="btn btn-secondary" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> 
-                        {% if lang %} {{ lang.get('Logout', 'Logout') }} {% else %} Logout {% endif %}
-                    </button>
-                </div>
+        <div class="nav-content">
+            <div class="logo">
+                <i class="fas fa-shield-alt" style="font-size: 1.4rem; color: var(--primary);"></i>
+                {% if lang %}{{ lang['Patta Application'] }}{% else %}Patta Portal{% endif %}
+            </div>
+            
+            <div class="user-controls">
+                {% if session.get('role') %}
+                    <div class="user-info">
+                        <span id="userName" style="font-weight: 600; font-size: 1rem;">
+                            {{ session.get('name', 'User') }}
+                        </span>
+                        <span class="role-badge 
+                            {%- if session.get('role') == 'citizen' %}role-citizen
+                            {%- elif session.get('role') == 'staff' %}role-staff
+                            {%- elif session.get('role') == 'admin' %}role-admin{% endif %}">
+                            {{ session.get('role')|upper }}
+                        </span>
+                        <a href="/logout" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt"></i> 
+                            {{ lang.get('Logout', 'Logout') }}
+                        </a>
+                    </div>
+                {% else %}
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <a href="/login?role=citizen" class="btn btn-primary">
+                            <i class="fas fa-user"></i> Citizen
+                        </a>
+                        <a href="/login?role=staff" class="btn btn-secondary">
+                            <i class="fas fa-user-shield"></i> Staff
+                        </a>
+                        <a href="/login?role=admin" class="btn btn-danger">
+                            <i class="fas fa-crown"></i> Admin
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </nav>
 
+    <!-- MAIN CONTENT -->
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
 
     <script>
-        // ✅ LANGUAGE CHANGE FUNCTION
         function changeLanguage(lang) {
-            document.cookie = `lang=${lang}; path=/; max-age=31536000; SameSite=Strict`;
+            document.cookie = `lang=${lang}; path=/; max-age=31536000; SameSite=Lax`;
             location.reload();
-        }
-
-        const token = localStorage.getItem('token');
-        if (token) {
-            fetch('/api/auth/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            .then(r => r.json())
-            .then(user => {
-                if (user.uid) {
-                    document.getElementById('userName').textContent = user.name || user.email;
-                    const roleEl = document.getElementById('userRole');
-                    roleEl.textContent = user.role.toUpperCase();
-                    roleEl.className = `role-badge role-${user.role}`;
-                    document.getElementById('userInfo').style.display = 'flex';
-                }
-            })
-            .catch(() => localStorage.removeItem('token'));
-        }
-
-        function logout() {
-            fetch('/api/auth/logout', { 
-                method: 'POST', 
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).then(() => {
-                localStorage.removeItem('token');
-                window.location.href = '/';
-            });
         }
     </script>
 </body>
