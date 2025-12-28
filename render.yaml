@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: patta-project
+    env: static
+    buildCommand: ""  # No build needed for static PWA
+    publishCommand: "echo 'Done'"
+    repo: https://github.com/Shreya-A-K/Patta_Project
