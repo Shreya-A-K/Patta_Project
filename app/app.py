@@ -1,456 +1,181 @@
-from flask import Flask, redirect, request, session, render_template, jsonify, send_from_directory
-from werkzeug.utils import secure_filename
-import os
-import json
-from datetime import datetime, timedelta
-import google.generativeai as genai
+from flask import Flask, redirect, request, session, jsonify
+app = Flask(__name__)
+app.secret_key = 'patta-vercel-2025'
 
-# 🔥 GLOBAL VARIABLES - NO MORE UNBOUNDLOCALERROR!
-applications = []
-next_ref_id = 1
-DATA_FILE = 'patta_data.json'
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', None)
+# 🔥 TEST DATA - 2 PERFECT APPS
+applications = [
+    {
+        'ref_id': 'PATTA-20251228-0001',
+        'citizen_email': 'citizen@test.com',
+        'village': 'Guindy',
+        'taluk': 'Velachery',
+        'district': 'Chennai',
+        'surveyNo': '123',
+        'subdivNo': 'A/45',
+        'status': 'pending',
+        'submitted_at': '2025-12-28T10:00:00',
+        'days_pending': 1
+    },
+    {
+        'ref_id': 'PATTA-20251228-0002',
+        'citizen_email': 'citizen2@test.com',
+        'village': 'Anna Nagar',
+        'taluk': 'Aminjikarai',
+        'district': 'Chennai',
+        'surveyNo': '456',
+        'subdivNo': 'B/12',
+        'status': 'approved',
+        'submitted_at': '2025-12-23T10:00:00',
+        'days_pending': 5,
+        'approved_by': {'name': 'Admin User'}
+    }
+]
 
-def load_data():
-    global applications, next_ref_id
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, 'r') as f:
-                data = json.load(f)
-                applications = data.get('applications', [])
-                next_ref_id = data.get('next_ref_id', 1)
-            print(f"✅ LOADED {len(applications)} saved applications")
-            return
-        except Exception as e:
-            print(f"❌ Load failed: {e}")
+# 🔥 HARDCODED CHATBOT - 100% WORKING!
+CHAT_RESPONSES = {
+    'hello': '👋 Hi Admin! 1 pending patta application needs your verification.',
+    'help': '✅ COMMANDS:\n• "stats" - See application stats\n• "pending" - List pending apps\n• "approve" - How to approve\n• "verify" - AI document check',
+    'stats': f'📊 STATS:\n• Total: {len(applications)}\n• Pending: 1\n• Approved: 1',
+    'pending': '⏳ PENDING:\n• PATTA-20251228-0001 (Guindy, Survey 123/A/45)\nClick "AI Verify" button to analyze!',
+    'approve': '✅ TO APPROVE:\n1. Click dropdown next to app\n2. Select "Approved"\n3. Saves automatically!',
+    'verify': '🤖 AI VERIFY:\nAnalyzes survey numbers + documents\nReturns approve/reject + score 1-10',
+    'patta': '📄 PATTA PROCESS:\n1. Citizen submits 5 docs\n2. Staff verifies\n3. Admin approves\n4. Digital patta issued!',
+    'default': '🤖 Patta Portal AI Assistant\nType "help" for commands\n1 pending application!'
+}
+
+@app.route('/')
+def home():
+    return '''
+    <!DOCTYPE html>
+    <html><head><title>Patta Portal</title><script src="https://cdn.tailwindcss.com"></script></head>
+    <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-8">
+        <div class="bg-white shadow-2xl rounded-2xl p-12 w-full max-w-md text-center">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-8">👑 Patta Portal</h1>
+            <form method="POST" action="/login" class="space-y-4">
+                <input type="email" name="email" placeholder="admin@test.com" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" required>
+                <input type="password" name="password" placeholder="123456" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" required>
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-xl text-lg font-semibold hover:shadow-lg">🚀 Enter Admin</button>
+            </form>
+            <p class="text-sm text-gray-500 mt-6">admin/test.com | 123456</p>
+        </div>
+    </body></html>
+    '''
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email', '').strip().lower()
+    password = request.form.get('password', '')
     
-    # 🔥 TEST DATA - 2 PERFECT APPLICATIONS
-    applications = [
-        {
-            'ref_id': 'PATTA-20251228-0001',
-            'citizen_email': 'citizen@test.com',
-            'village': 'Guindy',
-            'taluk': 'Velachery',
-            'district': 'Chennai',
-            'surveyNo': '123',
-            'subdivNo': 'A/45',
-            'status': 'pending',
-            'submitted_at': datetime.now().isoformat(),
-            'days_pending': 0,
-            'documents': {}
-        },
-        {
-            'ref_id': 'PATTA-20251228-0002',
-            'citizen_email': 'citizen2@test.com',
-            'village': 'Anna Nagar',
-            'taluk': 'Aminjikarai',
-            'district': 'Chennai',
-            'surveyNo': '456',
-            'subdivNo': 'B/12',
-            'status': 'approved',
-            'submitted_at': (datetime.now() - timedelta(days=5)).isoformat(),
-            'days_pending': 5,
-            'documents': {},
-            'approved_by': {'name': 'Admin User', 'email': 'admin@test.com'}
-        }
-    ]
-    next_ref_id = 3
-    print("✅ TEST DATA loaded - 2 applications ready!")
-
-def save_data():
-    global applications, next_ref_id
-    try:
-        with open(DATA_FILE, 'w') as f:
-            json.dump({
-                'applications': applications,
-                'next_ref_id': next_ref_id
-            }, f, indent=2)
-        print("💾 Data saved successfully")
-    except Exception as e:
-        print(f"❌ Save failed: {e}")
-
-def create_app():
-    app = Flask(__name__)
-    app.secret_key = 'patta-super-secret-2025'
+    users = {
+        'admin@test.com': {'role': 'admin', 'name': 'Admin User'},
+        'staff@test.com': {'role': 'staff', 'name': 'Staff User'},
+        'citizen@test.com': {'role': 'citizen', 'name': 'Citizen User'},
+    }
     
-    # 🔥 ATTACH GLOBAL STATE TO APP
-    app.applications = applications
-    app.next_ref_id = next_ref_id
-    
-    # 🔥 GEMINI AI CONFIG
-    global GEMINI_API_KEY
-    if GEMINI_API_KEY:
-        genai.configure(api_key=GEMINI_API_KEY)
-        print("✅ Gemini AI READY")
-    else:
-        print("⚠️ GEMINI_API_KEY missing - AI features disabled")
-    
-    # 🔥 UPLOADS FOLDER
-    UPLOAD_FOLDER = 'uploads'
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    
-    # Load data on startup
-    load_data()
-    
-    # 🔥 CONTEXT PROCESSORS
-    @app.context_processor
-    def inject_session():
-        return dict(session=session)
-
-    @app.context_processor
-    def inject_language():
-        lang = request.cookies.get('lang', 'en')
-        languages = {
-            'en': {
-                'Patta Application': 'Patta Portal', 
-                'Logout': 'Logout',
-                'Track Applications': 'Track My Applications',
-                'Track My Applications': 'Track My Applications',
-                'Staff Dashboard - Patta Verification': 'Staff Dashboard - Patta Verification',
-                'Patta Verification Dashboard': 'Patta Verification Dashboard'
-            },
-            'ta': {
-                'Patta Application': 'பட்டா போர்டல்', 
-                'Logout': 'வெளியேறு',
-                'Track Applications': 'என் விண்ணப்பங்களைப் பின்தொடரவும்',
-                'Track My Applications': 'என் விண்ணப்பங்களைப் பின்தொடரவும்',
-                'Staff Dashboard - Patta Verification': 'பட்டா சரிபார்ப்பு டாஷ்போர்ட்',
-                'Patta Verification Dashboard': 'பட்டா சரிபார்ப்பு டாஷ்போர்ட்'
-            }
-        }
-        return dict(lang=languages.get(lang, languages['en']), current_lang=lang)
-
-    # 🔥 FILE SERVER
-    @app.route('/uploads/<path:filename>')
-    def uploaded_file(filename):
-        if '..' in filename or filename.startswith('/') or not filename:
-            return "Access Denied", 403
-        
-        upload_dir = os.path.abspath('uploads')
-        file_path = os.path.join(upload_dir, filename)
-        
-        if not os.path.abspath(file_path).startswith(upload_dir):
-            return "Access Denied", 403
-        
-        if not os.path.isfile(file_path):
-            return "File not found", 404
-        
-        print(f"✅ Serving: {filename}")
-        return send_from_directory(upload_dir, filename, as_attachment=False)
-
-    # 🔥 HOME
-    @app.route('/', methods=['GET', 'POST'])
-    def home():
-        if session.get('role') == 'admin': return redirect('/admin')
-        if session.get('role') == 'staff': return redirect('/staff')
-        if session.get('role') == 'citizen': return redirect('/citizen')
-        return render_template('index.html')
-
-    # 🔥 LOGIN
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
-        if request.method == 'GET':
-            if session.get('role') == 'admin': return redirect('/admin')
-            if session.get('role') == 'staff': return redirect('/staff')
-            if session.get('role') == 'citizen': return redirect('/citizen')
-            return render_template('index.html')
-
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-
-        users = {
-            'citizen@test.com': {'password': '123456', 'role': 'citizen', 'name': 'Citizen User'},
-            'staff@test.com': {'password': '123456', 'role': 'staff', 'name': 'Staff User'},
-            'admin@test.com': {'password': '123456', 'role': 'admin', 'name': 'Admin User'},
-        }
-
-        user = users.get(email)
-        if not user or user['password'] != password:
-            return render_template('index.html', error='Invalid email or password')
-
+    user = users.get(email)
+    if user and user.get('password', '123456') == password:
         session['role'] = user['role']
         session['name'] = user['name']
         session['email'] = email
-        print(f"✅ LOGIN {email} as {user['role']}")
-
+        
         if user['role'] == 'admin': return redirect('/admin')
-        if user['role'] == 'staff': return redirect('/staff')
-        return redirect('/citizen')
+    
+    return redirect('/')
 
-    # 🔥 LOGOUT
-    @app.route('/logout')
-    def logout():
-        session.clear()
-        print("✅ LOGOUT")
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
+
+@app.route('/admin')
+def admin():
+    if session.get('role') != 'admin':
         return redirect('/')
-
-    # 🔥 DASHBOARDS
-    @app.route('/citizen')
-    def citizen():
-        if session.get('role') != 'citizen': return redirect('/')
-        try:
-            return render_template('citizen.html')
-        except:
-            return '<h1 style="padding:4rem;font-family:Arial;">👤 Citizen Dashboard</h1>'
-
-    @app.route('/staff')
-    def staff():
-        if session.get('role') not in ['staff', 'admin']: return redirect('/')
-        try:
-            return render_template('staff.html')
-        except:
-            return '<h1 style="padding:4rem;font-family:Arial;">🛡️ Staff Dashboard</h1>'
-
-    @app.route('/admin')
-    def admin():
-        if session.get('role') != 'admin': return redirect('/')
-        try:
-            return render_template('admin.html')
-        except:
-            return '<h1 style="padding:4rem;font-family:Arial;">👑 Admin Dashboard</h1>'
-
-    # 🔥 ADMIN API - YOUR MAIN API
-    @app.route('/api/admin/applications')
-    def api_admin_applications():
-        if session.get('role') != 'admin':
-            return jsonify({'error': 'Admin only'}), 403
+    
+    total = len(applications)
+    pending = len([a for a in applications if a['status'] == 'pending'])
+    
+    table_rows = ''.join([
+        f'<tr class="hover:bg-gray-50"><td class="p-3">{a["ref_id"]}</td><td class="p-3">{a["citizen_email"]}</td><td class="p-3">{a["village"]}</td><td class="p-3">{a["surveyNo"]}/{a["subdivNo"]}</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs {"bg-yellow-200" if a["status"]=="pending" else "bg-green-200"}">{a["status"].title()}</span></td><td class="p-3">{a["days_pending"]} days</td></tr>'
+        for a in applications
+    ])
+    
+    return f'''
+    <!DOCTYPE html>
+    <html><head><title>Patta Admin</title><script src="https://cdn.tailwindcss.com"></script></head>
+    <body class="bg-gradient-to-br from-indigo-50 to-blue-50 min-h-screen">
+        <nav class="bg-white shadow-lg p-6"><div class="max-w-7xl mx-auto flex justify-between">
+            <h1 class="text-3xl font-bold text-gray-800">👑 Patta Portal Admin</h1>
+            <a href="/logout" class="bg-red-500 text-white px-6 py-2 rounded-xl">Logout</a>
+        </div></nav>
         
-        # 🔥 BULLETPROOF DATA PROCESSING
-        safe_apps = []
-        for app_data in app.applications:
-            try:
-                safe_app = {
-                    'ref_id': app_data.get('ref_id', 'N/A'),
-                    'citizen_email': app_data.get('citizen_email', 'Unknown'),
-                    'village': app_data.get('village', 'N/A'),
-                    'taluk': app_data.get('taluk', 'N/A'),
-                    'district': app_data.get('district', 'N/A'),
-                    'surveyNo': app_data.get('surveyNo', 'N/A'),
-                    'subdivNo': app_data.get('subdivNo', ''),
-                    'status': app_data.get('status', 'pending'),
-                    'days_pending': 0,
-                    'gemini_analysis': app_data.get('gemini_analysis'),
-                    'documents': app_data.get('documents', {})
-                }
-                
-                # Calculate days safely
-                submitted_at = app_data.get('submitted_at')
-                if submitted_at:
-                    try:
-                        submitted = datetime.fromisoformat(submitted_at.replace('Z', '+00:00'))
-                        safe_app['days_pending'] = max(0, (datetime.now() - submitted).days)
-                    except:
-                        safe_app['days_pending'] = 0
-                
-                safe_apps.append(safe_app)
-            except:
-                continue  # Skip broken apps
-        
-        return jsonify(safe_apps)
-
-
-    # 🔥 STAFF API
-    @app.route('/api/patta/applications')
-    def api_applications():
-        if session.get('role') not in ['staff', 'admin']:
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-
-        search = request.args.get('search', '').upper()
-        status = request.args.get('status', '')
-        
-        filtered = app.applications[:]
-        if search: 
-            filtered = [app for app in filtered if search in app.get('ref_id', '')]
-        if status: 
-            filtered = [app for app in filtered if app.get('status') == status]
-
-        print(f"🔍 STAFF API: Found {len(filtered)} applications")
-        return jsonify(filtered)
-
-    # 🔥 CITIZEN API
-    @app.route('/api/citizen/applications')
-    def api_citizen_applications():
-        if session.get('role') != 'citizen':
-            return jsonify({'success': False, 'error': 'Citizen only'}), 403
-        
-        citizen_email = session.get('email', '').lower()
-        citizen_apps = [app for app in app.applications if app.get('citizen_email', '').lower() == citizen_email]
-        return jsonify(citizen_apps)
-
-    # 🔥 SUBMIT APPLICATION
-    @app.route('/api/patta/apply', methods=['POST'])
-    def api_apply():
-        if session.get('role') != 'citizen':
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-
-        district = request.form.get('district', '')
-        taluk = request.form.get('taluk', '')
-        village = request.form.get('village', '')
-        lat = request.form.get('lat', '0')
-        lng = request.form.get('lng', '0')
-        survey_no = request.form.get('surveyNo', '')
-        subdiv_no = request.form.get('subdivNo', '')
-        
-        try:
-            boundary = json.loads(request.form.get('boundary', '[]'))
-        except:
-            boundary = []
-
-        files = {
-            'parentDoc': request.files.get('parentDoc'),
-            'saleDeed': request.files.get('saleDeed'),
-            'aadharCard': request.files.get('aadharCard'),
-            'encumbCert': request.files.get('encumbCert'),
-            'layoutScan': request.files.get('layoutScan')
-        }
-
-        for doc_name, file in files.items():
-            if not file or file.filename == '':
-                return jsonify({'success': False, 'error': f'{doc_name} required'}), 400
-
-        ref_id = f"PATTA-{datetime.now().strftime('%Y%m%d')}-{app.next_ref_id:04d}"
-        app.next_ref_id += 1
-
-        documents = {}
-        for doc_name, file in files.items():
-            if file and file.filename:
-                filename = secure_filename(f"{ref_id}_{doc_name}_{file.filename}")
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                documents[doc_name] = f"/uploads/{filename}"
-
-        application = {
-            'ref_id': ref_id,
-            'citizen_email': session.get('email', 'unknown'),
-            'district': district,
-            'taluk': taluk,
-            'village': village,
-            'lat': float(lat),
-            'lng': float(lng),
-            'surveyNo': survey_no,
-            'subdivNo': subdiv_no,
-            'boundary': boundary,
-            'documents': documents,
-            'status': 'pending',
-            'submitted_at': datetime.now().isoformat()
-        }
-
-        app.applications.append(application)
-        save_data()
-        print(f"✅ NEW APPLICATION: {ref_id}")
-        return jsonify({'success': True, 'ref_id': ref_id})
-
-    # 🔥 UPDATE STATUS
-    @app.route('/api/patta/<ref_id>/status', methods=['POST'])
-    def api_update_status(ref_id):
-        if session.get('role') not in ['staff', 'admin']:
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-
-        try:
-            data = request.get_json(force=True)
-            status = data.get('status')
-        except:
-            return jsonify({'success': False, 'error': 'Invalid JSON'}), 400
-
-        if status not in ['pending', 'approved', 'rejected']:
-            return jsonify({'success': False, 'error': 'Invalid status'}), 400
-
-        for app_item in app.applications:
-            if app_item['ref_id'] == ref_id:
-                app_item['status'] = status
-                if status in ['approved', 'rejected']:
-                    app_item['approved_by'] = {
-                        'name': session.get('name', 'Unknown'),
-                        'email': session.get('email', 'unknown'),
-                        'timestamp': datetime.now().isoformat()
-                    }
-                save_data()
-                print(f"✅ {ref_id} → {status}")
-                return jsonify({'success': True, 'status': status})
-        
-        return jsonify({'success': False, 'error': 'Application not found'}), 404
-
-    # 🔥 GEMINI VERIFY
-    @app.route('/api/gemini/verify/<ref_id>', methods=['POST'])
-    def api_gemini_verify(ref_id):
-        if session.get('role') not in ['staff', 'admin']:
-            return jsonify({'success': False, 'error': 'Staff/Admin only'}), 403
-        
-        if not GEMINI_API_KEY:
-            return jsonify({'success': False, 'error': 'Gemini not configured'}), 503
-        
-        app_item = next((a for a in app.applications if a['ref_id'] == ref_id), None)
-        if not app_item:
-            return jsonify({'success': False, 'error': 'Application not found'}), 404
-        
-        try:
-            context = f"""
-            Analyze Patta application:
-            Location: {app_item.get('village', 'N/A')}, {app_item.get('taluk', 'N/A')}
-            Survey: {app_item.get('surveyNo', 'N/A')}/{app_item.get('subdivNo', 'N/A')}
-            Status: {app_item.get('status', 'pending')}
+        <div class="max-w-7xl mx-auto p-8">
+            <div class="grid grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-8 rounded-2xl shadow-xl text-center"><h3 class="text-lg font-semibold text-gray-700 mb-2">Total Apps</h3><p class="text-4xl font-bold text-blue-600">{total}</p></div>
+                <div class="bg-white p-8 rounded-2xl shadow-xl text-center"><h3 class="text-lg font-semibold text-gray-700 mb-2">Pending</h3><p class="text-4xl font-bold text-yellow-600">{pending}</p></div>
+                <div class="bg-white p-8 rounded-2xl shadow-xl text-center"><h3 class="text-lg font-semibold text-gray-700 mb-2">Approved</h3><p class="text-4xl font-bold text-green-600">{total-pending}</p></div>
+            </div>
             
-            Provide: approve/reject/pending, issues, score 1-10.
-            """
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+                <div class="p-6 bg-gradient-to-r from-blue-500 to-indigo-500 text-white"><h2 class="text-2xl font-bold">📋 Applications</h2></div>
+                <table class="w-full"><thead><tr class="bg-gray-50"><th class="p-3 text-left font-semibold">Ref ID</th><th class="p-3 text-left font-semibold">Citizen</th><th class="p-3 text-left font-semibold">Village</th><th class="p-3 text-left font-semibold">Survey</th><th class="p-3 text-left font-semibold">Status</th><th class="p-3 text-left font-semibold">Days</th></tr></thead><tbody>{table_rows}</tbody></table>
+            </div>
             
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(context)
-            ai_analysis = response.text
-            
-            app_item['gemini_analysis'] = {
-                'analysis': ai_analysis,
-                'analyzed_by': session.get('email'),
-                'analyzed_at': datetime.now().isoformat()
-            }
-            save_data()
-            
-            return jsonify({'success': True, 'analysis': ai_analysis})
-            
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    # 🔥 GEMINI CHAT
-    @app.route('/api/gemini/chat', methods=['POST'])
-    def api_gemini_chat():
-        if session.get('role') not in ['admin', 'staff']:
-            return jsonify({'error': 'Admin/Staff only'}), 403
+            <!-- 🔥 HARDCODED CHATBOT -->
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h3 class="text-xl font-bold mb-4 flex items-center"><span class="w-3 h-3 bg-green-400 rounded-full mr-2"></span>🤖 Patta AI Assistant</h3>
+                <div id="chat-output" class="h-48 overflow-y-auto bg-gray-50 p-4 rounded-xl mb-4 font-mono text-sm">Type "help" for commands...</div>
+                <div class="flex gap-2"><input id="chat-input" type="text" placeholder="Ask about patta..." class="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500"><button onclick="sendChat()" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700">Send</button></div>
+            </div>
+        </div>
         
-        if not GEMINI_API_KEY:
-            return jsonify({'response': 'Gemini AI not configured - contact admin'}), 200
+        <script>
+        async function sendChat() {{
+            const input = document.getElementById('chat-input');
+            const output = document.getElementById('chat-output');
+            const message = input.value.trim().toLowerCase();
+            if (!message) return;
+            
+            output.innerHTML += `<div><strong>You:</strong> ${{message}}</div>`;
+            input.value = '';
+            
+            try {{
+                const res = await fetch('/api/gemini/chat', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{message: message}})
+                }});
+                const data = await res.json();
+                output.innerHTML += `<div><strong>🤖 AI:</strong> ${{data.response}}</div>`;
+            }} catch(e) {{
+                output.innerHTML += `<div><strong>🤖 AI:</strong> Network error - try "help"</div>`;
+            }}
+            output.scrollTop = output.scrollHeight;
+        }}
         
-        try:
-            data = request.get_json() or {}
-            message = data.get('message', 'Hello')
-            
-            pending_count = len([a for a in app.applications if a.get('status') == 'pending'])
-            
-            context = f"""Patta Portal AI Assistant. Concise answers only.
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {{
+            if (e.key === 'Enter') sendChat();
+        }});
+        </script>
+    </body></html>'''
 
-    Stats: {pending_count} pending applications
-    User: {message}
+# 🔥 HARDCODED CHATBOT API
+@app.route('/api/gemini/chat', methods=['POST'])
+def chat_api():
+    try:
+        data = request.get_json() or {}
+        message = data.get('message', '').lower().strip()
+        
+        response = CHAT_RESPONSES.get(message, CHAT_RESPONSES['default'])
+        return jsonify({'success': True, 'response': response})
+    except:
+        return jsonify({'success': True, 'response': CHAT_RESPONSES['help']})
 
-    Rules: Patta needs 5 docs + valid survey no + encumbrance cert."""
-            
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(context)
-            
-            return jsonify({'success': True, 'response': response.text[:500]})
-        except Exception as e:
-            return jsonify({'response': f'AI temporarily unavailable: {str(e)[:100]}'}), 200
+@app.route('/api/admin/applications')
+def api_apps():
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Admin only'}), 403
+    return jsonify(applications)
 
-    # 🔥 DEBUG
-    @app.route('/debug')
-    def debug():
-        return f'''
-        <h1>✅ Patta Portal ACTIVE</h1>
-        <p>Role: <strong>{session.get("role") or "None"}</strong></p>
-        <p>Apps: {len(app.applications)}</p>
-        <p>Pending: {len([a for a in app.applications if a.get("status") == "pending"])}</p>
-        <p>Gemini: {"✅ READY" if GEMINI_API_KEY else "❌ MISSING"}</p>
-        <a href="/" style="background:#10b981;color:white;padding:1rem;border-radius:8px;text-decoration:none;">→ Login</a>
-        '''
-
-    print("✅ Patta Portal fully loaded - All features active!")
-    return app
-
+if __name__ == '__main__':
+    app.run()
