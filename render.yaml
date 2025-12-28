@@ -2,4 +2,5 @@ services:
   - type: web
     name: patta-project
     env: static
-    publishDirectory: "."
+    buildCommand: ""  
+    repo: https://github.com/Shreya-A-K/Patta_Project
