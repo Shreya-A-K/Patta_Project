@@ -99,6 +99,95 @@ def create_app():
     # =========================
     # BASIC ROUTES
     # =========================
+    @app.context_processor
+    def inject_language():
+        lang = request.cookies.get('lang', 'en')
+        languages = {
+    'en': {
+        'Patta Application': 'Patta Portal', 
+        'Logout': 'Logout',
+        'Track Applications': 'Track My Applications',
+        'Track My Applications': 'Track My Applications',
+        'Staff Dashboard - Patta Verification': 'Staff Dashboard - Patta Verification',
+        'Patta Verification Dashboard': 'Patta Verification Dashboard'
+    },
+    'ta': {
+        'Patta Application': 'பட்டா போர்டல்', 
+        'Logout': 'வெளியேறு',
+        'Track Applications': 'என் விண்ணப்பங்களைப் பின்தொடரவும்',
+        'Track My Applications': 'என் விண்ணப்பங்களைப் பின்தொடரவும்',
+        'Staff Dashboard - Patta Verification': 'பட்டா சரிபார்ப்பு டாஷ்போர்ட்',
+        'Patta Verification Dashboard': 'பட்டா சரிபார்ப்பு டாஷ்போர்ட்'
+    },
+    'kn': {
+        'Patta Application': 'ಪಟ್ಟಾ ಪೋರ್ಟಲ್',
+        'Logout': 'ಬಿಡಾ',
+        'Track Applications': 'ನನ್ನ ಅರ್ಜಿಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
+        'Track My Applications': 'ನನ್ನ ಅರ್ಜಿಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
+        'Staff Dashboard - Patta Verification': 'ಪಟ್ಟಾ ಪರಿಶೀಲನೆ ಸ್ಟಾಫ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+        'Patta Verification Dashboard': 'ಪಟ್ಟಾ ಪರಿಶೀಲನೆ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್'
+    },
+    'te': {
+        'Patta Application': 'పట్టా పోర్టల్',
+        'Logout': 'లాగౌట్',
+        'Track Applications': 'నా అప్లికేషన్లను ట్రాక్ చేయండి',
+        'Track My Applications': 'నా అప్లికేషన్లను ట్రాక్ చేయండి',
+        'Staff Dashboard - Patta Verification': 'పట్టా ధృవీకరణ స్టాఫ్ డాష్‌బోర్డ్',
+        'Patta Verification Dashboard': 'పట్టా ధృవీకరణ డాష్‌బోర్డ్'
+    },
+    'ml': {
+        'Patta Application': 'പട്ട ഓർട്ടൽ',
+        'Logout': 'ലോഗൗട്ട്',
+        'Track Applications': 'എന്റെ അപേക്ഷകൾ ട്രാക്ക് ചെയ്യുക',
+        'Track My Applications': 'എന്റെ അപേക്ഷകൾ ട്രാക്ക് ചെയ്യുക',
+        'Staff Dashboard - Patta Verification': 'പട്ട സ്ഥിരീകരണ സ്റ്റാഫ് ഡാഷ്ബോർഡ്',
+        'Patta Verification Dashboard': 'പട്ട സ്ഥിരീകരണ ഡാഷ്ബോർഡ്'
+    },
+    'hi': {
+        'Patta Application': 'पट्टा पोर्टल',
+        'Logout': 'लॉग आउट',
+        'Track Applications': 'मेरे आवेदनों को ट्रैक करें',
+        'Track My Applications': 'मेरे आवेदनों को ट्रैक करें',
+        'Staff Dashboard - Patta Verification': 'पट्टा सत्यापन स्टाफ डैशबोर्ड',
+        'Patta Verification Dashboard': 'पट्टा सत्यापन डैशबोर्ड'
+    },
+    'bn': {
+        'Patta Application': 'পট্টা পোর্টাল',
+        'Logout': 'লগ আউট',
+        'Track Applications': 'আমার আবেদনগুলি ট্র্যাক করুন',
+        'Track My Applications': 'আমার আবেদনগুলি ট্র্যাক করুন',
+        'Staff Dashboard - Patta Verification': 'পট্টা যাচাই স্টাফ ড্যাশবোর্ড',
+        'Patta Verification Dashboard': 'পট্টা যাচাই ড্যাশবোর্ড'
+    },
+    'mr': {
+        'Patta Application': 'पट्टा पोर्टल',
+        'Logout': 'बाहेर पडा',
+        'Track Applications': 'माझ्या अर्जांचा मागोवा घ्या',
+        'Track My Applications': 'माझ्या अर्जांचा मागोवा घ्या',
+        'Staff Dashboard - Patta Verification': 'पट्टा तपासणी स्टाफ डॅशबोर्ड',
+        'Patta Verification Dashboard': 'पट्टा तपासणी डॅशबोर्ड'
+    },
+    'gu': {
+        'Patta Application': 'પટ્ટા પોર્ટલ',
+        'Logout': 'લૉગઆઉટ',
+        'Track Applications': 'મારા અરજીઓ ટ્રેક કરો',
+        'Track My Applications': 'મારા અરજીઓ ટ્રેક કરો',
+        'Staff Dashboard - Patta Verification': 'પટ્ટા ચકાસણી સ્ટાફ ડેશબોર્ડ',
+        'Patta Verification Dashboard': 'પટ્ટા ચકાસણી ડેશબોર્ડ'
+    },
+    'pa': {
+        'Patta Application': 'ਪਟਟਾ ਪੋਰਟਲ',
+        'Logout': 'ਲੌਗ ਆਊਟ',
+        'Track Applications': 'ਮੇਰੀਆਂ ਅਰਜ਼ੀਆਂ ਟਰੈਕ ਕਰੋ',
+        'Track My Applications': 'ਮੇਰੀਆਂ ਅਰਜ਼ੀਆਂ ਟਰੈਕ ਕਰੋ',
+        'Staff Dashboard - Patta Verification': 'ਪਟਟਾ ਜਾਂਚ ਸਟਾਫ਼ ਡੈਸ਼ਬੋਰਡ',
+        'Patta Verification Dashboard': 'ਪਟਟਾ ਜਾਂਚ ਡੈਸ਼ਬੋਰਡ'
+    }
+}
+
+
+        return dict(lang=languages.get(lang, languages['en']), current_lang=lang)
+
     @app.route("/")
     def home():
         role = session.get("role")
