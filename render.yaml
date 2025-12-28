@@ -2,3 +2,4 @@ services:
   - type: web
     name: patta-project
     env: static
+    publishDirectory: "."
