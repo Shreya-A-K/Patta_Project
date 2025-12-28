@@ -2,7 +2,3 @@ services:
   - type: web
     name: patta-project
     env: static
-    buildCommand: ""  # No build needed for static PWA
-    publishDirectory: "/"
-    autoDeploy: false
-    repo: https://github.com/Shreya-A-K/Patta_Project
