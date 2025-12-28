@@ -4,20 +4,28 @@ services:
     env: python
     region: singapore
     plan: free
+
     buildCommand: |
       pip install -r requirements.txt
+
     startCommand: |
       gunicorn app.app:app
+
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.13
+
       - key: FLASK_ENV
         value: production
-      - key: PYTHON_VERSION
-        value: 3.10
+
       - key: FLASK_SECRET_KEY
         sync: false
+
       - key: FIREBASE_PROJECT_ID
         sync: false
+
       - key: FIREBASE_STORAGE_BUCKET
         sync: false
+
       - key: GOOGLE_APPLICATION_CREDENTIALS
         value: firebase-service-account.json
