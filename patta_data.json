@@ -1,0 +1,57 @@
+{
+  "applications": [
+    {
+      "ref_id": "PATTA-20251228-0001",
+      "citizen_email": "citizen@test.com",
+      "village": "Guindy",
+      "taluk": "Velachery",
+      "district": "Chennai",
+      "surveyNo": "123",
+      "subdivNo": "A/45",
+      "status": "pending",
+      "submitted_at": "2025-12-28T12:47:14.170941",
+      "days_pending": 0
+    },
+    {
+      "ref_id": "PATTA-20251228-0002",
+      "citizen_email": "citizen@test.com",
+      "district": "\u0b9a\u0bc6\u0ba9\u0bcd\u0ba9\u0bc8 \u0bae\u0bbe\u0bb5\u0b9f\u0bcd\u0b9f\u0bae\u0bcd",
+      "taluk": "Chennai",
+      "village": "\u0b85\u0ba3\u0bcd\u0ba3\u0bbe \u0ba8\u0b95\u0bb0\u0bcd",
+      "lat": 13.08756,
+      "lng": 80.21648,
+      "surveyNo": "123",
+      "subdivNo": "1",
+      "boundary": [
+        [
+          [
+            "13.0876409206",
+            "80.2161325034"
+          ],
+          [
+            "13.0876226328",
+            "80.2168134487"
+          ],
+          [
+            "13.0872816963",
+            "80.2168161296"
+          ],
+          [
+            "13.0872790838",
+            "80.2161432269"
+          ]
+        ]
+      ],
+      "documents": {
+        "parentDoc": "/uploads/PATTA-20251228-0002_parentDoc_read.pdf",
+        "saleDeed": "/uploads/PATTA-20251228-0002_saleDeed_read.pdf",
+        "aadharCard": "/uploads/PATTA-20251228-0002_aadharCard_UG_Pre_approved_NPTEL_course_List__Jan_to_May_2026.pdf",
+        "encumbCert": "/uploads/PATTA-20251228-0002_encumbCert_read_2.pdf",
+        "layoutScan": "/uploads/PATTA-20251228-0002_layoutScan_UG_Pre_approved_NPTEL_course_List__Jan_to_May_2026.pdf"
+      },
+      "status": "pending",
+      "submitted_at": "2025-12-28T12:48:40.341875"
+    }
+  ],
+  "next_ref_id": 3
+}

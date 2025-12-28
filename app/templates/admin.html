@@ -1,227 +1,259 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard - Patta Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Noto Sans Tamil', -apple-system, sans-serif; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+        .chat-message { margin-bottom: 1rem; padding: 1rem; border-radius: 0.75rem; }
+        .user-message { background: #3b82f6; color: white; margin-left: 20%; }
+        .bot-message { background: white; border: 1px solid #e5e7eb; margin-right: 20%; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
+    <!-- TOP NAV -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">👑 Admin User - Patta Verification</h1>
+            <a href="/logout" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Logout</a>
+        </div>
+    </nav>
 
-{% block title %}Admin Dashboard - Patta Portal{% endblock %}
+    <div class="max-w-7xl mx-auto">
+        <!-- STATS CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Total Applications</h3>
+                <div id="total-apps" class="text-3xl font-bold text-blue-600">0</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Pending</h3>
+                <div id="pending-apps" class="text-3xl font-bold text-orange-600">0</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">AI Analyzed</h3>
+                <div id="ai-analyzed" class="text-3xl font-bold text-purple-600">0</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Approved</h3>
+                <div id="approved-apps" class="text-3xl font-bold text-green-600">0</div>
+            </div>
+        </div>
 
-{% block content %}
-<div class="container">
-    <div class="welcome-card">
-        <h1 class="welcome-title">👑 Admin Dashboard</h1>
-        <p>FULL ACCESS - All Applications + Staff Activity Tracking</p>
+        <!-- APPLICATIONS TABLE -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div class="p-6 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <h2 class="text-2xl font-bold text-gray-900">📋 All Patta Applications</h2>
+                <div class="flex gap-2 mt-2">
+                    <input id="searchInput" placeholder="Search Ref ID..." class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <select id="statusFilter" class="p-3 border rounded-lg">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <button onclick="loadApps()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">🔄 Refresh</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table id="apps-table" class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Ref ID</th>
+                            <th class="px-6 py-4 text-left">Citizen</th>
+                            <th class="px-6 py-4 text-left">Location</th>
+                            <th class="px-6 py-4 text-left">Survey</th>
+                            <th class="px-6 py-4 text-left">Status</th>
+                            <th class="px-6 py-4 text-left">Days</th>
+                            <th class="px-6 py-4 text-left">AI</th>
+                            <th class="px-6 py-4 text-left">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" class="text-center py-12 text-gray-500">Loading applications...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GEMINI CHATBOT -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">🤖 Gemini AI Assistant <span id="chatSpinner" class="ml-2 text-green-500" style="display:none;">⏳</span></h2>
+            <div id="chat-container" class="h-64 bg-gray-50 rounded-lg p-4 overflow-y-auto mb-4 border"></div>
+            <div class="flex gap-2">
+                <input id="chat-input" type="text" placeholder="Ask about applications, verification rules..." 
+                       class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                <button onclick="sendChat()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Send</button>
+                <button onclick="clearChat()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Clear</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-        <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); padding: 2rem; border-radius: 1rem; text-align: center;">
-            <h3 style="color: white; margin: 0;">📊 Total Applications</h3>
-            <div id="totalApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669); padding: 2rem; border-radius: 1rem; text-align: center;">
-            <h3 style="color: white; margin: 0;">⏳ Pending</h3>
-            <div id="pendingApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 2rem; border-radius: 1rem; text-align: center;">
-            <h3 style="color: white; margin: 0;">✅ Approved</h3>
-            <div id="approvedApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 2rem; border-radius: 1rem; text-align: center;">
-            <h3 style="color: white; margin: 0;">❌ Rejected</h3>
-            <div id="rejectedApps" style="font-size: 2.5rem; font-weight: 700; color: white; margin-top: 0.5rem;">0</div>
-        </div>
-    </div>
+    <script>
+        let applications = [];
 
-    <!-- Filters -->
-    <div class="form-card" style="margin-bottom: 2rem;">
-        <h3>🔍 Filter Applications</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem;">
-            <input type="text" id="searchInput" class="form-input" placeholder="Search Ref ID..." onkeyup="filterApplications()">
-            <input type="date" id="dateFilter" class="form-input" onchange="filterApplications()">
-            <select id="statusFilter" class="form-input" onchange="filterApplications()">
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-            </select>
-            <button class="btn btn-primary" onclick="loadAdminApplications()">🔄 Refresh</button>
-        </div>
-    </div>
-
-    <!-- Applications Table -->
-    <div class="form-card">
-        <h3>📋 All Applications <span id="loadingSpinner" style="display:none;">⏳ Loading...</span></h3>
-        <div style="overflow-x: auto;">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Ref ID</th>
-                        <th>Citizen</th>
-                        <th>Property</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Days</th>
-                        <th>Approved By</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="adminTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding:3rem; color:#6b7280;">Click Refresh to load applications</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<style>
-.stat-card { padding: 2rem; border-radius: 1rem; text-align: center; }
-.table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-.table th, .table td { padding: 1rem 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
-.table th { background: #f8fafc; font-weight: 600; position: sticky; top: 0; }
-.status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; }
-.pending-badge { background: #fef3c7; color: #d97706; }
-.approved-badge { background: #d1fae5; color: #065f46; }
-.rejected-badge { background: #fee2e2; color: #991b1b; }
-.btn-sm { 
-    padding: 0.375rem 0.75rem; 
-    font-size: 0.875rem; 
-    border: 1px solid; 
-    border-radius: 0.375rem; 
-    cursor: pointer; 
-    background: white; 
-    text-decoration: none;
-    display: inline-block;
-}
-.btn-sm.btn-success { background: #10b981; color: white; border-color: #059669; }
-.btn-sm.btn-danger { background: #ef4444; color: white; border-color: #dc2626; }
-.btn-sm.btn-secondary { background: #6b7280; color: white; border-color: #4b5563; }
-.btn-sm:hover { opacity: 0.9; transform: translateY(-1px); }
-</style>
-
-<script>
-let allApplications = [];
-
-// ✅ HELPER FUNCTIONS FIRST
-function getStatusBadge(status) {
-    const classes = {
-        'pending': 'status-badge pending-badge',
-        'approved': 'status-badge approved-badge', 
-        'rejected': 'status-badge rejected-badge'
-    };
-    return `<span class="${classes[status] || 'status-badge'}">${status.toUpperCase()}</span>`;
-}
-
-function viewStaffDocs(refId) {
-    window.open(`/staff#searchRef=${encodeURIComponent(refId)}`, '_blank');
-}
-
-// ✅ FIXED: NO response.ok check - handles ALL responses
-async function loadAdminApplications() {
-    const spinner = document.getElementById('loadingSpinner');
-    spinner.style.display = 'inline';
-    
-    try {
-        const response = await fetch('/api/admin/applications');
-        const data = await response.json();
-        
-        // Safe array handling
-        allApplications = Array.isArray(data) ? data : [];
-        renderAdminTable(allApplications);
-        updateStats();
-        
-    } catch (error) {
-        console.error('Load failed:', error);
-        document.getElementById('adminTableBody').innerHTML = 
-            '<tr><td colspan="8" style="text-align:center; padding:3rem; color:#6b7280;">No applications found - Submit one from Citizen portal</td></tr>';
-    } finally {
-        spinner.style.display = 'none';
-    }
-}
-
-function renderAdminTable(apps = allApplications) {
-    const tbody = document.getElementById('adminTableBody');
-    
-    if (apps.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:3rem; color:#6b7280;">No applications found - Submit one from Citizen portal</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = apps.map(app => {
-        const statusBadge = getStatusBadge(app.status || 'pending');
-        const approvedBy = app.approved_by_staff || 'N/A';
-        const days = app.days_pending || 0;
-        
-        const actions = (app.status || 'pending') === 'pending' ? 
-            `<button class="btn-sm btn-success" onclick="updateStatus('${app.ref_id}', 'approved')">✅ Approve</button>
-             <button class="btn-sm btn-danger" onclick="updateStatus('${app.ref_id}', 'rejected')">❌ Reject</button>` : 
-            `<span class="status-badge approved-badge">Complete</span>`;
-        
-        return `
-            <tr>
-                <td><strong style="color: #3b82f6;">${app.ref_id || 'N/A'}</strong></td>
-                <td>${app.citizen_email || 'N/A'}</td>
-                <td>${app.surveyNo || 'N/A'} / ${app.subdivNo || ''}</td>
-                <td>${app.village || 'N/A'}, ${app.taluk || 'N/A'}${app.district ? ', ' + app.district : ''}</td>
-                <td>${statusBadge}</td>
-                <td style="color: ${days > 7 ? '#ef4444' : '#10b981'};">${days} days</td>
-                <td>${approvedBy}</td>
-                <td>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="btn-sm btn-secondary" onclick="viewStaffDocs('${app.ref_id}')">📁 View in Staff</button>
-                        ${actions}
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function updateStats() {
-    const total = allApplications.length;
-    const pending = allApplications.filter(a => a.status === 'pending').length;
-    const approved = allApplications.filter(a => a.status === 'approved').length;
-    const rejected = allApplications.filter(a => a.status === 'rejected').length;
-    
-    document.getElementById('totalApps').textContent = total;
-    document.getElementById('pendingApps').textContent = pending;
-    document.getElementById('approvedApps').textContent = approved;
-    document.getElementById('rejectedApps').textContent = rejected;
-}
-
-function filterApplications() {
-    const search = document.getElementById('searchInput').value.toUpperCase();
-    const status = document.getElementById('statusFilter').value;
-    const date = document.getElementById('dateFilter').value;
-    
-    let filtered = allApplications;
-    if (search) filtered = filtered.filter(a => a.ref_id?.includes(search));
-    if (status) filtered = filtered.filter(a => a.status === status);
-    if (date) filtered = filtered.filter(a => a.submitted_at?.startsWith(date));
-    
-    renderAdminTable(filtered);
-}
-
-async function updateStatus(refId, status) {
-    if (!confirm(`Mark ${refId} as ${status.toUpperCase()}?`)) return;
-    
-    try {
-        const response = await fetch(`/api/patta/${refId}/status`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: status })
-        });
-        
-        const result = await response.json();
-        if (response.ok && result.success) {
-            await loadAdminApplications();
-            alert(`✅ ${refId} → ${status.toUpperCase()} SUCCESS!`);
-        } else {
-            alert(`❌ ${result.error || 'Update failed'}`);
+        // 🔥 ULTRA SAFE LOAD FUNCTION
+        async function loadApps() {
+            try {
+                console.log('🔄 Loading apps...');
+                const res = await fetch('/api/admin/applications');
+                console.log('Status:', res.status, res.statusText);
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error('API Error:', res.status, errorText);
+                    throw new Error(`HTTP ${res.status}: ${errorText}`);
+                }
+                
+                const data = await res.json();
+                console.log('✅ Loaded:', data.length, 'applications');
+                applications = data;
+                renderTable();
+                updateStats();
+            } catch (error) {
+                console.error('❌ Load failed:', error);
+                document.querySelector('#apps-table tbody').innerHTML = 
+                    `<tr><td colspan="8" class="text-center py-12 text-red-500 bg-red-50 p-8">
+                        <div>
+                            <h3>🚫 API ERROR</h3>
+                            <p><strong>Error:</strong> ${error.message}</p>
+                            <p><strong>Check:</strong> F12 → Console</p>
+                            <button onclick="loadApps()" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg">🔄 Retry</button>
+                        </div>
+                    </td></tr>`;
+            }
         }
-    } catch (error) {
-        alert(`❌ Network error: ${error.message}`);
-    }
-}
 
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(loadAdminApplications, 500);
-});
-</script>
-{% endblock %}
+        function renderTable() {
+            const tbody = document.querySelector('#apps-table tbody');
+            const search = document.getElementById('searchInput').value.toUpperCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            const filtered = applications.filter(app => 
+                (app.ref_id || '').toUpperCase().includes(search) &&
+                (!statusFilter || app.status === statusFilter)
+            );
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">No applications found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(app => {
+                const statusClass = app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                   app.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                                   'bg-red-100 text-red-800';
+                
+                const aiBtn = app.gemini_analysis ? 
+                    `<span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">🤖 AI OK</span>` :
+                    `<button onclick="geminiVerify('${app.ref_id}')" class="text-xs bg-purple-600 text-white px-3 py-1 rounded-full hover:bg-purple-700">AI Verify</button>`;
+                
+                return `
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="px-6 py-4 font-mono text-blue-600 font-semibold">${app.ref_id || 'N/A'}</td>
+                        <td class="px-6 py-4">${app.citizen_email || 'N/A'}</td>
+                        <td class="px-6 py-4">${app.village || 'N/A'}, ${app.taluk || 'N/A'}</td>
+                        <td class="px-6 py-4">${app.surveyNo || 'N/A'}/${app.subdivNo || ''}</td>
+                        <td class="px-6 py-4">
+                            <span class="status-badge ${statusClass}">${(app.status || 'pending').toUpperCase()}</span>
+                        </td>
+                        <td class="px-6 py-4 font-semibold">${app.days_pending || 0}</td>
+                        <td class="px-6 py-4">${aiBtn}</td>
+                        <td class="px-6 py-4">
+                            <select onchange="updateStatus('${app.ref_id}', this.value)" class="border px-3 py-2 rounded-lg text-sm">
+                                <option value="pending" ${app.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="approved" ${app.status === 'approved' ? 'selected' : ''}>✅ Approve</option>
+                                <option value="rejected" ${app.status === 'rejected' ? 'selected' : ''}>❌ Reject</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Rest of your JavaScript functions (unchanged)...
+        function updateStats() {
+            const total = applications.length;
+            const pending = applications.filter(a => a.status === 'pending').length;
+            const approved = applications.filter(a => a.status === 'approved').length;
+            const aiAnalyzed = applications.filter(a => a.gemini_analysis).length;
+            
+            document.getElementById('total-apps').textContent = total;
+            document.getElementById('pending-apps').textContent = pending;
+            document.getElementById('approved-apps').textContent = approved;
+            document.getElementById('ai-analyzed').textContent = aiAnalyzed;
+        }
+
+        async function updateStatus(ref_id, status) {
+            try {
+                const res = await fetch(`/api/patta/${ref_id}/status`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({status})
+                });
+                if (res.ok) loadApps();
+            } catch(e) { console.error('Status update failed:', e); }
+        }
+
+        async function geminiVerify(ref_id) {
+            try {
+                const res = await fetch(`/api/gemini/verify/${ref_id}`, {method: 'POST'});
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ AI Analysis Complete! Refreshing...');
+                    loadApps();
+                } else {
+                    alert('❌ AI Error: ' + data.error);
+                }
+            } catch(e) { alert('❌ Network error'); }
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const container = document.getElementById('chat-container');
+            container.innerHTML += `<div class="chat-message user-message"><strong>You:</strong> ${message}</div>`;
+            input.value = '';
+            document.getElementById('chatSpinner').style.display = 'inline';
+
+            try {
+                const res = await fetch('/api/gemini/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message})
+                });
+                const data = await res.json();
+                document.getElementById('chatSpinner').style.display = 'none';
+                
+                if (data.success) {
+                    container.innerHTML += `<div class="chat-message bot-message"><strong>🤖 Gemini:</strong> ${data.response}</div>`;
+                } else {
+                    container.innerHTML += `<div class="chat-message bot-message text-red-500"><strong>🤖 Gemini:</strong> Chat error</div>`;
+                }
+                container.scrollTop = container.scrollHeight;
+            } catch(e) {
+                document.getElementById('chatSpinner').style.display = 'none';
+                container.innerHTML += '<div class="chat-message bot-message text-red-500">Network error</div>';
+            }
+        }
+
+        function clearChat() {
+            document.getElementById('chat-container').innerHTML = '';
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+        document.getElementById('statusFilter').addEventListener('change', renderTable);
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        // Auto-load
+        loadApps();
+        setInterval(loadApps, 10000);
+    </script>
+</body>
+</html>
