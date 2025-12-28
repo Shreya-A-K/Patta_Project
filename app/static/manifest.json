@@ -1,0 +1,16 @@
+{
+  "name": "Patta Portal",
+  "short_name": "Patta",
+  "description": "Tamil Nadu Digital Land Records",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#10b981",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

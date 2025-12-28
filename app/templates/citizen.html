@@ -227,7 +227,7 @@ function sendChatMessage() {
     
     document.getElementById('chatSpinner').style.display = 'inline';
     
-    fetch('/api/chat', {
+    fetch('/api/gemini/chat', {  // ✅ FIXED!
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message: message})
@@ -235,15 +235,15 @@ function sendChatMessage() {
     .then(res => res.json())
     .then(data => {
         document.getElementById('chatSpinner').style.display = 'none';
-        if (data.reply) {
-            addMessage('bot', data.reply);
+        if (data.response) {  // ✅ Fixed response key
+            addMessage('bot', data.response);
         } else {
-            addMessage('bot', 'Sorry, I could not process that. Try asking about Patta documents or process.');
+            addMessage('bot', 'Sorry, try "help" for citizen commands.');
         }
     })
     .catch(() => {
         document.getElementById('chatSpinner').style.display = 'none';
-        addMessage('bot', 'Chat service temporarily unavailable.');
+        addMessage('bot', '🤖 Try: help, status, documents');
     });
 }
 

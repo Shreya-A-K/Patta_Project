@@ -9,6 +9,7 @@
       "surveyNo": "123",
       "subdivNo": "A/45",
       "status": "pending",
+<<<<<<< HEAD
       "submitted_at": "2025-12-28T12:47:14.170941",
       "days_pending": 0
     },
@@ -51,6 +52,28 @@
       },
       "status": "pending",
       "submitted_at": "2025-12-28T12:48:40.341875"
+=======
+      "submitted_at": "2025-12-28T15:58:43.008229",
+      "days_pending": 0,
+      "documents": {}
+    },
+    {
+      "ref_id": "PATTA-20251228-0002",
+      "citizen_email": "citizen2@test.com",
+      "village": "Anna Nagar",
+      "taluk": "Aminjikarai",
+      "district": "Chennai",
+      "surveyNo": "456",
+      "subdivNo": "B/12",
+      "status": "approved",
+      "submitted_at": "2025-12-23T15:58:43.008244",
+      "days_pending": 5,
+      "documents": {},
+      "approved_by": {
+        "name": "Admin User",
+        "email": "admin@test.com"
+      }
+>>>>>>> d16e230 (PWA upgrade)
     }
   ],
   "next_ref_id": 3
